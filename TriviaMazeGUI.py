@@ -1,6 +1,6 @@
 from maze import Maze
 from MazeDrawer import Drawer
-from tkinter import Tk, Frame, Button, Label, Canvas, Text, Entry, Toplevel, Menu
+from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu
 from tkinter.constants import END, W
 
 
@@ -43,13 +43,13 @@ class MazeGUI:
         maze = self.maze
         self.startmenu.grid(row=0, column=0)
         menu_spacer = Frame(self.startmenu, height=100, width=600)
-        menu_spacer.grid(row=0, column=0, columnspan=2)
-        menu_spacer2 = Frame(self.startmenu, height=400, width=40)
-        menu_spacer2.grid(row=2, column=0)
-        menu_spacer3 = Frame(menu_spacer2, height=100, width=100)
+        menu_spacer.grid(row=0, column=0, columnspan=3)
+        menu_spacer2 = Frame(self.startmenu, height=400, width=100)
+        menu_spacer2.grid(row=2, column=1)
+        menu_spacer3 = Frame(menu_spacer2)
         menu_spacer3.grid(row=4, column=1)
         title = Label(self.startmenu, text="504 TriviaMaze", font="Times 40", pady=50)
-        title.grid(row=1, column=0, columnspan=2)
+        title.grid(row=1, column=0, columnspan=4)
         new_game_button = Button(menu_spacer2, text="New Game", font="Times 20",
                                  command= self.start_game)
         new_game_button.grid(row=3, column=1, sticky=W)
@@ -100,7 +100,7 @@ class MazeGUI:
     def game_display_init(self):
         self.maze.construct()
         self._menu_init()
-        self._interface_init()
+        self._movement_interface_init()
         size = self.maze.get_size()
         self.display = Canvas(self.gamescreen, height=size[0]*100, width=size[1]*100, bg="white")
         self.drawer = Drawer(self.maze, self.display)
@@ -157,19 +157,38 @@ class MazeGUI:
         menubar.add_command(label="Exit", command=lambda: confirm_exit(self.root))
         self.root.config(menu=menubar)
 
-    def _interface_init(self):
+    def _movement_interface_init(self):
         """Creates the interface containing player actions, including movement, using potions and displaying player info."""
-        self.text_display = Canvas(self.gamescreen, height=200, width=600, bg="white")
-        self.text_display.grid(row=1, column=0, rowspan=3)
-        self.north = Button(self.gamescreen, text="North", command=lambda: self._move_player("north"), pady=5)
+        self.text_display = Canvas(self.gamescreen, height=200, width=600, bg="black")
+        self.text_display.grid(row=1, column=0)
+        movementframe = Frame(self.gamescreen)
+        self.north = Button(movementframe, text="North", command=lambda: self._move_player("north"), pady=5)
         self.north.grid(row=1, column=2, columnspan=2)
-        self.south = Button(self.gamescreen, text="South", command=lambda: self._move_player("south"), pady=5)
+        self.south = Button(movementframe, text="South", command=lambda: self._move_player("south"), pady=5)
         self.south.grid(row=3, column=2, columnspan=2)
-        self.east = Button(self.gamescreen, text="East", command=lambda: self._move_player("east"), pady=5)
+        self.east = Button(movementframe, text="East", command=lambda: self._move_player("east"), pady=5)
         self.east.grid(row=2, column=4)
-        self.west = Button(self.gamescreen, text="West", command=lambda: self._move_player("west"), pady=5)
+        self.west = Button(movementframe, text="West", command=lambda: self._move_player("west"), pady=5)
         self.west.grid(row=2, column=1)
+        movementframe.grid(row=1, column=1)
         self._set_move_button_state()
+        self.gamescreen.bind('<Left>', self.leftKey)
+        self.gamescreen.bind('<Right>', self.rightKey)
+        self.gamescreen.bind('<Up>', self.upKey)
+        self.gamescreen.bind('<Down>', self.downKey)
+        self.gamescreen.focus_set()
+
+    def leftKey(self, event):
+        self._move_player("west")
+
+    def rightKey(self, event):
+        self._move_player("east")
+
+    def upKey(self, event):
+        self._move_player("north")
+
+    def downKey(self, event):
+        self._move_player("south")
 
     def _set_move_button_state(self):
         """Sets the state of the movement buttons depending on if the adjacent rooms can be reached from the current
