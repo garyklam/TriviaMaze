@@ -25,21 +25,44 @@ class Room:
     def lock_door(self, direction):
         self._doors[direction] = False
 
+    @property
+    def position(self):
+        return self._position
+
 
 class Maze:
 
     def __init__(self, rows, columns):
         self.rows = rows
         self.cols = columns
-        self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
-        self.set_borders()
-        self.exit = self.get_room(self.rows-1, self.cols-1)
-        self.player_location = [0, 0]
+        self._player_location = [0, 0]
         self.visited_rooms = []
+        self.construct()
+
+    @property
+    def player_location(self):
+        return self._player_location
+
+    def get_size(self):
+        return [self.rows, self.cols]
 
     def get_room(self, row, col):
         """Returns room object located at the given row and column."""
         return self.grid[row][col]
+
+    def resize_dungeon(self, row, col):
+        """
+        Alters dimension fields of the dungeon, does not create a new grid of rooms, needs to call generate to actually
+        resize the dungeon.
+        """
+        self.rows = row
+        self.cols = col
+        self.construct()
+
+    def construct(self):
+        self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
+        self.set_borders()
+        self.exit = self.get_room(self.rows - 1, self.cols - 1)
 
     def set_borders(self):
         """Sets the door values of the rooms on the edge of the dungeon to be walls."""
