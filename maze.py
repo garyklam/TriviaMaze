@@ -3,9 +3,15 @@ class Room:
     def __init__(self, row, column):
         self._position = (row, column)
         self._doors = {"north": True,
-                        "south": True,
-                        "east": True,
-                        "west": True}
+                       "south": True,
+                       "east": True,
+                       "west": True}
+        self.answers = {
+            "north": 'correct',
+            "south": 'correct',
+            "east": 'correct',
+            "west": 'correct'
+        }
 
     def doors(self):
         return self._doors
@@ -25,6 +31,24 @@ class Room:
     def lock_door(self, direction):
         self._doors[direction] = False
 
+    def set_answer(self, direction, answer):
+        # answer could be correct or wrong
+        self.answers[direction] = answer
+
+    def game_over(self):
+        if self.answers["north"] == 'wrong':
+            self._doors['north']=False
+        if self.answers["south"] == 'wrong':
+            self._doors['south']=False
+        if self.answers["east"] == 'wrong':
+            self._doors['east']=False
+        if self.answers["west"] == 'wrong':
+            self._doors['west']=False
+        for door, value in self.doors().items():
+            if(value ==  True):
+                return  False
+        return True
+
 
 class Maze:
 
@@ -33,9 +57,12 @@ class Maze:
         self.cols = columns
         self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
         self.set_borders()
-        self.exit = self.get_room(self.rows-1, self.cols-1)
+        self.exit = self.get_room(self.rows - 1, self.cols - 1)
         self.player_location = [0, 0]
         self.visited_rooms = []
+        self.questions = [0, 0]
+        # 0 - corner room
+        # 1 - border room
 
     def get_room(self, row, col):
         """Returns room object located at the given row and column."""
@@ -80,13 +107,13 @@ class Maze:
                 found_path = True
             else:
                 if not found_path and self.check_north(row, col):
-                    found_path = self.check_traversal(row-1, col)
+                    found_path = self.check_traversal(row - 1, col)
                 if not found_path and self.check_west(row, col):
-                    found_path = self.check_traversal(row, col-1)
+                    found_path = self.check_traversal(row, col - 1)
                 if not found_path and self.check_south(row, col):
-                    found_path = self.check_traversal(row+1, col)
+                    found_path = self.check_traversal(row + 1, col)
                 if not found_path and self.check_east(row, col):
-                    found_path = self.check_traversal(row, col+1)
+                    found_path = self.check_traversal(row, col + 1)
         return found_path
 
     def in_bounds(self, row, col):
@@ -103,10 +130,10 @@ class Maze:
         """Checks to see if the given room has a room to the "north" and if it is possible to travel to the room.
         If the given room has an "open" north door or if the northern room has an "open" south door, then it is
         possible to travel between the two rooms."""
-        if self.in_bounds(row-1, col):
+        if self.in_bounds(row - 1, col):
             curr = self.get_room(row, col)
             doors1 = curr.doors()
-            south = self.get_room(row-1, col)
+            south = self.get_room(row - 1, col)
             doors2 = south.doors()
             if doors1["north"] and doors2["south"]:
                 return True
@@ -117,10 +144,10 @@ class Maze:
         """Checks to see if the given room has a room to the "south" and if it is possible to travel to the room.
             If the given room has an "open" south door or if the southern room has an "open" north door, then it is
             possible to travel between the two rooms."""
-        if self.in_bounds(row+1, col):
+        if self.in_bounds(row + 1, col):
             curr = self.get_room(row, col)
             doors1 = curr.doors()
-            north = self.get_room(row+1, col)
+            north = self.get_room(row + 1, col)
             doors2 = north.doors()
             if doors1["south"] and doors2["north"]:
                 return True
@@ -131,10 +158,10 @@ class Maze:
         """Checks to see if the given room has a room to the "east" and if it is possible to travel to the room.
             If the given room has an "open" east door or if the eastern room has an "west" south door, then it is
             possible to travel between the two rooms."""
-        if self.in_bounds(row, col+1):
+        if self.in_bounds(row, col + 1):
             curr = self.get_room(row, col)
             doors1 = curr.doors()
-            west = self.get_room(row, col+1)
+            west = self.get_room(row, col + 1)
             doors2 = west.doors()
             if doors1["east"] and doors2["west"]:
                 return True
@@ -145,20 +172,24 @@ class Maze:
         """Checks to see if the given room has a room to the "west" and if it is possible to travel to the room.
             If the given room has an "open" west door or if the western room has an "open" west door, then it is
             possible to travel between the two rooms."""
-        if self.in_bounds(row, col-1):
+        if self.in_bounds(row, col - 1):
             curr = self.get_room(row, col)
             doors1 = curr.doors()
-            east = self.get_room(row, col-1)
+            east = self.get_room(row, col - 1)
             doors2 = east.doors()
             if doors1["west"] and doors2["east"]:
                 return True
         else:
             return False
 
+    def check_game_over(self, row, col):
+        room = self.grid[row][col]
+        return room.game_over()
+
 
 if __name__ == '__main__':
     test = Maze(4, 4)
-    print(test.check_traversal(test.player_location[0], test.player_location[1]))
+    print(test.check_traversal(test.player_location[0], test.player_location[0]))
     movements = ["north", "south", "north", "west", "east", "east", "east", "east", "east"]
     for direction in movements:
         test.move_player(direction)
@@ -167,5 +198,8 @@ if __name__ == '__main__':
     print(test.check_traversal(test.player_location[0], test.player_location[1]))
     test.lock_door("west")
     print(test.check_traversal(test.player_location[0], test.player_location[1]))
-
-
+    print('Testing Game over method')
+    movements = ["east", "south"]
+    test.get_room(0, 0).answers['east'] = 'wrong'
+    test.get_room(0, 0).answers['south'] = 'wrong'
+    print('Is game over ' + str(test.check_game_over(0, 0)))
