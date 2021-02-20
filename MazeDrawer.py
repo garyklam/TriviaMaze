@@ -51,14 +51,14 @@ class Drawer:
         position = room.position
         row, col = position[0], position[1]
         if self.maze.check_north(row, col):
-            self.canvas.create_rectangle(self.room_unit * col + 24, self.room_unit * row - 2, self.room_unit * col + 84,
-                                    self.room_unit * row + 6, fill="white", outline="")
+            self.canvas.create_rectangle(self.room_unit * col + 23, self.room_unit * row - 1, self.room_unit * col + 83,
+                                    self.room_unit * row + 5, fill="white", outline="")
         if self.maze.check_south(row, col):
-            self.canvas.create_rectangle(self.room_unit * col + 24, self.room_unit * (row+1) - 2, self.room_unit * col + 84,
-                                    self.room_unit * (row+1) + 6, fill="white", outline="")
+            self.canvas.create_rectangle(self.room_unit * col + 23, self.room_unit * (row+1) - 1, self.room_unit * col + 83,
+                                    self.room_unit * (row+1) + 5, fill="white", outline="")
         if self.maze.check_west(row, col):
-            self.canvas.create_rectangle(self.room_unit * col - 2, self.room_unit * row + 24, self.room_unit * col + 6,
-                                    self.room_unit * row + 84, fill="white", outline="")
+            self.canvas.create_rectangle(self.room_unit * col - 1, self.room_unit * row + 23, self.room_unit * col + 5,
+                                    self.room_unit * row + 83, fill="white", outline="")
         if self.maze.check_east(row, col):
-            self.canvas.create_rectangle(self.room_unit * (col+1) + 6, self.room_unit * row + 24,
-                                    self.room_unit * (col+1) - 2, self.room_unit * row + 84, fill="white", outline="")
+            self.canvas.create_rectangle(self.room_unit * (col+1) + 5, self.room_unit * row + 23,
+                                    self.room_unit * (col+1) - 1, self.room_unit * row + 83, fill="white", outline="")

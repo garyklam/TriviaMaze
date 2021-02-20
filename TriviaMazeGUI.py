@@ -1,5 +1,6 @@
 from maze import Maze
 from MazeDrawer import Drawer
+from question_database import SQLDatabase
 from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu
 from tkinter.constants import END, W
 
@@ -10,6 +11,10 @@ class MazeGUI:
         self.root = Tk()
         self.gamescreen = Frame(self.root)
         self.startmenu = Frame(self.root)
+        self.db = None
+        self.display = None
+        self.drawer = None
+        self.stats = None
         self.root.resizable(False, False)
         self.root.title("TriviaMaze")
         self.start_menu_init()
@@ -23,17 +28,20 @@ class MazeGUI:
         program."""
         def set_difficulty(difficulty):
             if difficulty == "Hard":
-                maze.resize_dungeon(10, 10)
+                maze.resize_dungeon(8, 8)
+                maze.set_difficulty("hard")
                 easy_button["relief"] = "raised"
                 medium_button["relief"] = "raised"
                 hard_button["relief"] = "sunken"
             elif difficulty == "Medium":
-                maze.resize_dungeon(7, 7)
+                maze.resize_dungeon(6, 6)
+                maze.set_difficulty("medium")
                 easy_button["relief"] = "raised"
                 medium_button["relief"] = "sunken"
                 hard_button["relief"] = "raised"
             elif difficulty == "Easy":
                 maze.resize_dungeon(4, 4)
+                maze.set_difficulty("easy")
                 easy_button["relief"] = "sunken"
                 medium_button["relief"] = "raised"
                 hard_button["relief"] = "raised"
@@ -86,10 +94,13 @@ class MazeGUI:
                              command=lambda: self.screen_switch(instruct_frame, self.startmenu)).grid(row=1, column=0)
 
     def load_game(self):
+        """Set maze fields to the save state, self.start_game"""
         pass
 
     def start_game(self):
         self.game_display_init()
+        db = SQLDatabase(self.maze.category, self.maze.difficulty, self.maze.get_total_rooms())
+        self.db = db.build_database()
         self.screen_switch(self.startmenu, self.gamescreen)
 
     def screen_switch(self, curr_frame, new_frame):
@@ -158,7 +169,8 @@ class MazeGUI:
         self.root.config(menu=menubar)
 
     def _movement_interface_init(self):
-        """Creates the interface containing player actions, including movement, using potions and displaying player info."""
+        """Creates the interface containing player actions, including movement, using potions and displaying player
+        info."""
         self.text_display = Canvas(self.gamescreen, height=200, width=600, bg="black")
         self.text_display.grid(row=1, column=0)
         movementframe = Frame(self.gamescreen)
@@ -218,6 +230,7 @@ class MazeGUI:
         self.maze.move_player(direction)
         self.drawer.draw()
         self._set_move_button_state()
+
 
 if __name__ == '__main__':
     game = MazeGUI()

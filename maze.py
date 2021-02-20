@@ -7,6 +7,7 @@ class Room:
                         "east": True,
                         "west": True}
 
+
     def doors(self):
         return self._doors
 
@@ -37,11 +38,24 @@ class Maze:
         self.cols = columns
         self._player_location = [0, 0]
         self.visited_rooms = []
+        self._difficulty = "easy"
+        self._category = None
         self.construct()
 
     @property
     def player_location(self):
         return self._player_location
+
+    @property
+    def difficulty(self):
+        return self._difficulty
+
+    @property
+    def category(self):
+        return self._category
+
+    def get_total_rooms(self):
+        return self.rows * (self.cols-1) + self.cols * (self.rows-1)
 
     def get_size(self):
         return [self.rows, self.cols]
@@ -58,6 +72,12 @@ class Maze:
         self.rows = row
         self.cols = col
         self.construct()
+
+    def set_difficulty(self, difficulty):
+        self._difficulty = difficulty
+
+    def set_category(self, category):
+        self._category = category
 
     def construct(self):
         self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
