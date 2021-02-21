@@ -7,7 +7,6 @@ class Room:
                         "east": True,
                         "west": True}
 
-
     def doors(self):
         return self._doors
 
@@ -36,8 +35,9 @@ class Maze:
     def __init__(self, rows, columns):
         self.rows = rows
         self.cols = columns
-        self._player_location = [0, 0]
+        self._player_location = [1, 1]
         self.visited_rooms = []
+        self.visited_rooms.append(self.player_location)
         self._difficulty = "easy"
         self._category = None
         self.construct()

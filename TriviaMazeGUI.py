@@ -3,6 +3,8 @@ from MazeDrawer import Drawer
 from question_database import SQLDatabase
 from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu
 from tkinter.constants import END, W
+import sqlite3
+import html
 
 
 class MazeGUI:
@@ -100,7 +102,8 @@ class MazeGUI:
     def start_game(self):
         self.game_display_init()
         db = SQLDatabase(self.maze.category, self.maze.difficulty, self.maze.get_total_rooms())
-        self.db = db.build_database()
+        db.build_database()
+        self.db = sqlite3.connect('trivia_maze_questions.db')
         self.screen_switch(self.startmenu, self.gamescreen)
 
     def screen_switch(self, curr_frame, new_frame):
@@ -146,14 +149,9 @@ class MazeGUI:
             ok_button = Button(warning, text="Ok", command=close).grid(row=1, column=1)
             back_button = Button(warning, text="Back", command=back).grid(row=1, column=2)
 
-        def insert_help_text(text_display):
+        def display_help():
             """Prints out the instruction text from the in the text display."""
-            instruction_file = open("dungeon_instruct.txt", 'r')
-            instruction_text = instruction_file.read()
-            text_display.configure(state="normal")
-            text_display.insert(END, instruction_text)
-            text_display.configure(state="disabled")
-            instruction_file.close()
+            pass
 
         def save():
             pass
@@ -162,7 +160,7 @@ class MazeGUI:
             pass
 
         menubar = Menu(self.root)
-        menubar.add_command(label="Help", command=lambda: insert_help_text(self.text_display))
+        menubar.add_command(label="Help", command=display_help())
         menubar.add_command(label="Save", command=lambda: save())
         menubar.add_command(label="Load", command=lambda: load())
         menubar.add_command(label="Exit", command=lambda: confirm_exit(self.root))
@@ -171,16 +169,17 @@ class MazeGUI:
     def _movement_interface_init(self):
         """Creates the interface containing player actions, including movement, using potions and displaying player
         info."""
-        self.text_display = Canvas(self.gamescreen, height=200, width=600, bg="black")
+        self.text_display = Frame(self.gamescreen, height=200, width=600, borderwidth=1)
+        self.text_display.grid_propagate(0)
         self.text_display.grid(row=1, column=0)
         movementframe = Frame(self.gamescreen)
-        self.north = Button(movementframe, text="North", command=lambda: self._move_player("north"), pady=5)
+        self.north = Button(movementframe, text="North", command=lambda: self.display_question("north"), pady=5)
         self.north.grid(row=1, column=2, columnspan=2)
-        self.south = Button(movementframe, text="South", command=lambda: self._move_player("south"), pady=5)
+        self.south = Button(movementframe, text="South", command=lambda: self.display_question("south"), pady=5)
         self.south.grid(row=3, column=2, columnspan=2)
-        self.east = Button(movementframe, text="East", command=lambda: self._move_player("east"), pady=5)
+        self.east = Button(movementframe, text="East", command=lambda: self.display_question("east"), pady=5)
         self.east.grid(row=2, column=4)
-        self.west = Button(movementframe, text="West", command=lambda: self._move_player("west"), pady=5)
+        self.west = Button(movementframe, text="West", command=lambda: self.display_question("west"), pady=5)
         self.west.grid(row=2, column=1)
         movementframe.grid(row=1, column=1)
         self._set_move_button_state()
@@ -191,16 +190,28 @@ class MazeGUI:
         self.gamescreen.focus_set()
 
     def leftKey(self, event):
-        self._move_player("west")
+        if self.maze.check_west(self.maze.player_location[0], self.maze.player_location[1]):
+            self.display_question("west")
+        else:
+            pass
 
     def rightKey(self, event):
-        self._move_player("east")
+        if self.maze.check_east(self.maze.player_location[0], self.maze.player_location[1]):
+            self.display_question("east")
+        else:
+            pass
 
     def upKey(self, event):
-        self._move_player("north")
+        if self.maze.check_north(self.maze.player_location[0], self.maze.player_location[1]):
+            self.display_question("north")
+        else:
+            pass
 
     def downKey(self, event):
-        self._move_player("south")
+        if self.maze.check_south(self.maze.player_location[0], self.maze.player_location[1]):
+            self.display_question("south")
+        else:
+            pass
 
     def _set_move_button_state(self):
         """Sets the state of the movement buttons depending on if the adjacent rooms can be reached from the current
@@ -223,13 +234,56 @@ class MazeGUI:
         else:
             self.west["state"] = "disabled"
 
-    def _move_player(self, direction):
+    def _move_player(self, event, direction, correct=True):
         """Changes the adventurer's location depending on the passed in direction. Conducts the room check then
         changes the drawer's location and redraws the game display. Then resets the move buttons."""
-        self.stats["Rooms traversed"] += 1
-        self.maze.move_player(direction)
+
+        if correct:
+            self.stats["Rooms traversed"] += 1
+            self.maze.move_player(direction)
+            self.maze.visited_rooms.append(self.maze.player_location)
+            print(f'{self.maze.visited_rooms}')
+        else:
+            self.maze.lock_door(direction)
         self.drawer.draw()
         self._set_move_button_state()
+        for item in self.text_display.winfo_children():
+            item.destroy()
+
+    def display_question(self, direction):
+        destination = self.maze.player_location
+        if direction == "north":
+            destination = [destination[0]-1, destination[1]]
+        elif direction == "south":
+            destination = [destination[0] + 1, destination[1]]
+        elif direction == "east":
+            destination = [destination[0], destination[1] + 1]
+        elif direction == "west":
+            destination = [destination[0], destination[1] - 1]
+        if destination in self.maze.visited_rooms:
+            print(f'destination:{destination}\nin:{self.maze.visited_rooms}')
+            self._move_player(direction)
+        else:
+            c = self.db.cursor()
+            c.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT 1;")
+            question = c.fetchone()
+            question_text = Label(self.text_display, text=f'{html.unescape(question[1])}', font="Times 16", wraplength=600)
+            question_text.grid(row=0, column=0)
+            correct_answer = Label(self.text_display, text=f'\t{html.unescape(question[2])}', font="Times 14")
+            correct_answer.bind('<Button-1>', lambda event: self._move_player(event, direction))
+            correct_answer.grid(row=1, column=0, sticky=W)
+            incorrect1 = Label(self.text_display, text=f'\t{html.unescape(question[3])}', font="Times 14")
+            incorrect1.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
+            incorrect1.grid(row=2, column=0, sticky=W)
+            if question[0] == "multiple":
+                incorrect2 = Label(self.text_display, text=f'\t{html.unescape(question[4])}', font="Times 14")
+                incorrect2.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
+                incorrect2.grid(row=3, column=0, sticky=W)
+                incorrect3 = Label(self.text_display, text=f'\t{html.unescape(question[5])}', font="Times 14")
+                incorrect3.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
+                incorrect3.grid(row=4, column=0, sticky=W)
+
+
 
 
 if __name__ == '__main__':
