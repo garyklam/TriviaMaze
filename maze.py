@@ -36,11 +36,11 @@ class Maze:
         self.rows = rows
         self.cols = columns
         self._player_location = [1, 1]
-        self.visited_rooms = []
-        self.visited_rooms.append(self.player_location)
         self._difficulty = "easy"
         self._category = None
-        self.construct()
+        self.grid = None
+        # self.construct()
+        self.visited_rooms = []
 
     @property
     def player_location(self):
@@ -71,7 +71,6 @@ class Maze:
         """
         self.rows = row
         self.cols = col
-        self.construct()
 
     def set_difficulty(self, difficulty):
         self._difficulty = difficulty
@@ -83,6 +82,9 @@ class Maze:
         self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
         self.set_borders()
         self.exit = self.get_room(self.rows - 1, self.cols - 1)
+        row, col = self.player_location[0], self.player_location[1]
+        room = self.get_room(row, col)
+        self.visited_rooms.append(room)
 
     def set_borders(self):
         """Sets the door values of the rooms on the edge of the dungeon to be walls."""
@@ -199,16 +201,16 @@ class Maze:
             return False
 
 
-if __name__ == '__main__':
-    test = Maze(4, 4)
-    print(test.check_traversal(test.player_location[0], test.player_location[1]))
-    movements = ["north", "south", "north", "west", "east", "east", "east", "east", "east"]
-    for direction in movements:
-        test.move_player(direction)
-        print(test.player_location)
-    test.lock_door("south")
-    print(test.check_traversal(test.player_location[0], test.player_location[1]))
-    test.lock_door("west")
-    print(test.check_traversal(test.player_location[0], test.player_location[1]))
-
-
+# if __name__ == '__main__':
+    # test = Maze(4, 4)
+    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
+    # movements = ["north", "south", "north", "west", "east", "east", "east", "east", "east"]
+    # for direction in movements:
+    #     test.move_player(direction)
+    #     print(test.player_location)
+    # test.lock_door("south")
+    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
+    # test.lock_door("west")
+    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
+    #
+    #

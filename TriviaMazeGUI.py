@@ -5,6 +5,7 @@ from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu
 from tkinter.constants import END, W
 import sqlite3
 import html
+import random
 
 
 class MazeGUI:
@@ -100,6 +101,7 @@ class MazeGUI:
         pass
 
     def start_game(self):
+        """Builds game screen and database of questions, switches to game screen."""
         self.game_display_init()
         db = SQLDatabase(self.maze.category, self.maze.difficulty, self.maze.get_total_rooms())
         db.build_database()
@@ -144,7 +146,7 @@ class MazeGUI:
 
             warning = Toplevel()
             warning_text = Label(warning, font="Times 16", pady=10, text="Are you sure you wish to exit? \n"
-                                                                         "Progress in the dungeon will not be saved")
+                                                                         "Any unsaved progress will not be kept.")
             warning_text.grid(row=0, column=0, columnspan=4)
             ok_button = Button(warning, text="Ok", command=close).grid(row=1, column=1)
             back_button = Button(warning, text="Back", command=back).grid(row=1, column=2)
@@ -167,8 +169,7 @@ class MazeGUI:
         self.root.config(menu=menubar)
 
     def _movement_interface_init(self):
-        """Creates the interface containing player actions, including movement, using potions and displaying player
-        info."""
+        """Creates the interface allowing player movement, binds arrow keys to different movements."""
         self.text_display = Frame(self.gamescreen, height=200, width=600, borderwidth=1)
         self.text_display.grid_propagate(0)
         self.text_display.grid(row=1, column=0)
@@ -190,24 +191,28 @@ class MazeGUI:
         self.gamescreen.focus_set()
 
     def leftKey(self, event):
+        """Event binding for the left key, moves the player west if possible."""
         if self.maze.check_west(self.maze.player_location[0], self.maze.player_location[1]):
             self.display_question("west")
         else:
             pass
 
     def rightKey(self, event):
+        """Event binding for the right key, moves the player east if possible."""
         if self.maze.check_east(self.maze.player_location[0], self.maze.player_location[1]):
             self.display_question("east")
         else:
             pass
 
     def upKey(self, event):
+        """Event binding for the up key, moves the player north if possible."""
         if self.maze.check_north(self.maze.player_location[0], self.maze.player_location[1]):
             self.display_question("north")
         else:
             pass
 
     def downKey(self, event):
+        """Event binding for the down key, moves the player south if possible."""
         if self.maze.check_south(self.maze.player_location[0], self.maze.player_location[1]):
             self.display_question("south")
         else:
@@ -235,14 +240,15 @@ class MazeGUI:
             self.west["state"] = "disabled"
 
     def _move_player(self, event, direction, correct=True):
-        """Changes the adventurer's location depending on the passed in direction. Conducts the room check then
-        changes the drawer's location and redraws the game display. Then resets the move buttons."""
-
+        """Moves the player and adds the new room to the list of visited rooms if correct, if not, then the corresonding
+        door is locked. In both cases the game display is redrawn, the movement buttons are reset and any text that is
+        in the text display is deleted."""
         if correct:
             self.stats["Rooms traversed"] += 1
             self.maze.move_player(direction)
-            self.maze.visited_rooms.append(self.maze.player_location)
-            print(f'{self.maze.visited_rooms}')
+            row, col = self.maze.player_location[0], self.maze.player_location[1]
+            room = self.maze.get_room(row, col)
+            self.maze.visited_rooms.append(room)
         else:
             self.maze.lock_door(direction)
         self.drawer.draw()
@@ -251,39 +257,55 @@ class MazeGUI:
             item.destroy()
 
     def display_question(self, direction):
-        destination = self.maze.player_location
+        """If a question is currently being displayed, pass. If the room that the player is moving too has already been
+        visited, then move the player. Otherwise, pull a question from the database, and display it in the text display.
+        """
+        if self.text_display.winfo_children():
+            return
         if direction == "north":
-            destination = [destination[0]-1, destination[1]]
+            destination = [self.maze.player_location[0]-1, self.maze.player_location[1]]
         elif direction == "south":
-            destination = [destination[0] + 1, destination[1]]
+            destination = [self.maze.player_location[0] + 1, self.maze.player_location[1]]
         elif direction == "east":
-            destination = [destination[0], destination[1] + 1]
+            destination = [self.maze.player_location[0], self.maze.player_location[1] + 1]
         elif direction == "west":
-            destination = [destination[0], destination[1] - 1]
-        if destination in self.maze.visited_rooms:
-            print(f'destination:{destination}\nin:{self.maze.visited_rooms}')
-            self._move_player(direction)
+            destination = [self.maze.player_location[0], self.maze.player_location[1] - 1]
+        if self.maze.get_room(destination[0], destination[1]) in self.maze.visited_rooms:
+            self.maze.move_player(direction)
+            self.drawer.draw()
+            self._set_move_button_state()
         else:
             c = self.db.cursor()
             c.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT 1;")
             question = c.fetchone()
-            question_text = Label(self.text_display, text=f'{html.unescape(question[1])}', font="Times 16", wraplength=600)
+            question_text = Label(self.text_display, text=f'{html.unescape(question[1])}', font="Times 16",
+                                  justify="left", wraplength=600)
             question_text.grid(row=0, column=0)
             correct_answer = Label(self.text_display, text=f'\t{html.unescape(question[2])}', font="Times 14")
             correct_answer.bind('<Button-1>', lambda event: self._move_player(event, direction))
-            correct_answer.grid(row=1, column=0, sticky=W)
             incorrect1 = Label(self.text_display, text=f'\t{html.unescape(question[3])}', font="Times 14")
             incorrect1.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
+            "Places correct answer on top for ease in testing"
+            correct_answer.grid(row=1, column=0, sticky=W)
             incorrect1.grid(row=2, column=0, sticky=W)
             if question[0] == "multiple":
                 incorrect2 = Label(self.text_display, text=f'\t{html.unescape(question[4])}', font="Times 14")
                 incorrect2.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
-                incorrect2.grid(row=3, column=0, sticky=W)
                 incorrect3 = Label(self.text_display, text=f'\t{html.unescape(question[5])}', font="Times 14")
                 incorrect3.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
+                "Places incorrect answers on bottom for ease in testing"
+                incorrect2.grid(row=3, column=0, sticky=W)
                 incorrect3.grid(row=4, column=0, sticky=W)
-
-
+            "Randomizes answer location"
+            #     positions = [1, 2, 3, 4]
+            #     random.shuffle(positions)
+            #     incorrect2.grid(row=positions.pop(), column=0, sticky=W)
+            #     incorrect3.grid(row=positions.pop(), column=0, sticky=W)
+            # else:
+            #     positions = [1, 2]
+            #     random.shuffle(positions)
+            # correct_answer.grid(row=positions.pop(), column=0, sticky=W)
+            # incorrect1.grid(row=positions.pop(), column=0, sticky=W)
 
 
 if __name__ == '__main__':
