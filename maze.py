@@ -6,6 +6,12 @@ class Room:
                         "south": True,
                         "east": True,
                         "west": True}
+        self.answers = {
+            "north": 'not set',
+            "south": 'not set',
+            "east": 'not set',
+            "west": 'not set'
+        }
 
     def doors(self):
         return self._doors
@@ -24,6 +30,20 @@ class Room:
 
     def lock_door(self, direction):
         self._doors[direction] = False
+        
+    def game_over(self):
+        if self.answers["north"] == 'wrong':
+            self._doors['north']=False
+        if self.answers["south"] == 'wrong':
+            self._doors['south']=False
+        if self.answers["east"] == 'wrong':
+            self._doors['east']=False
+        if self.answers["west"] == 'wrong':
+            self._doors['west']=False
+        for door, value in self.doors().items():
+            if(value ==  True):
+                return  False
+        return True
 
 
 class Maze:
@@ -154,6 +174,45 @@ class Maze:
                 return True
         else:
             return False
+        
+            
+    def check_game_over(self, row, col):
+        room = self.grid[row][col]
+        return room.game_over()
+    
+    def game_statistic(self):
+        self.C_ans = 0
+        self.W_ans = 0
+        self.points = 0
+        for room in self.grid[0]:
+
+            if room.answers["north"] == 'correct':
+                self.C_ans += 1
+                self.points += 2
+            if room.answers["north"] == 'wrong':
+               self.W_ans +=1
+            if room.answers["south"] == 'correct':
+                self.C_ans += 1
+                self.points += 2
+            if room.answers["south"] == 'wrong':
+               self.W_ans +=1
+            if room.answers["east"] == 'correct':
+                self.C_ans +=1
+                self.points += 2
+            if room.answers["east"] == 'wrong':
+               self.W_ans +=1
+            if room.answers["west"] == 'correct':
+                self.C_ans += 1
+                self.points += 2
+            if room.answers["west"] == 'wrong':
+               self.W_ans +=1
+        self.total_ans_que = self.C_ans + self.W_ans
+        A = ' Correct Answers ', self.C_ans
+        B = ' Wrong Answers ', self.W_ans
+        C = ' Total Answered que', self.total_ans_que
+        D = 'Total Points Earned',self.points
+        return f'{A[0]}: {A[1]}\n {B[0]}: {B[1]} \n {C[0]}: {C[1]} \n {D[0]}: {D[1]}'
+
 
 
 if __name__ == '__main__':
