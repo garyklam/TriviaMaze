@@ -25,21 +25,66 @@ class Room:
     def lock_door(self, direction):
         self._doors[direction] = False
 
+    @property
+    def position(self):
+        return self._position
+
 
 class Maze:
 
     def __init__(self, rows, columns):
         self.rows = rows
         self.cols = columns
-        self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
-        self.set_borders()
-        self.exit = self.get_room(self.rows-1, self.cols-1)
-        self.player_location = [0, 0]
+        self._player_location = [1, 1]
+        self._difficulty = "easy"
+        self._category = None
+        self.grid = None
+        # self.construct()
         self.visited_rooms = []
+
+    @property
+    def player_location(self):
+        return self._player_location
+
+    @property
+    def difficulty(self):
+        return self._difficulty
+
+    @property
+    def category(self):
+        return self._category
+
+    def get_total_rooms(self):
+        return self.rows * (self.cols-1) + self.cols * (self.rows-1)
+
+    def get_size(self):
+        return [self.rows, self.cols]
 
     def get_room(self, row, col):
         """Returns room object located at the given row and column."""
         return self.grid[row][col]
+
+    def resize_dungeon(self, row, col):
+        """
+        Alters dimension fields of the dungeon, does not create a new grid of rooms, needs to call generate to actually
+        resize the dungeon.
+        """
+        self.rows = row
+        self.cols = col
+
+    def set_difficulty(self, difficulty):
+        self._difficulty = difficulty
+
+    def set_category(self, category):
+        self._category = category
+
+    def construct(self):
+        self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
+        self.set_borders()
+        self.exit = self.get_room(self.rows - 1, self.cols - 1)
+        row, col = self.player_location[0], self.player_location[1]
+        room = self.get_room(row, col)
+        self.visited_rooms.append(room)
 
     def set_borders(self):
         """Sets the door values of the rooms on the edge of the dungeon to be walls."""
@@ -62,6 +107,12 @@ class Maze:
             self.player_location[1] = self.player_location[1] + 1
         else:
             pass
+
+    def player_wins(self):
+        if self._player_location[0] == self.exit.position[0] \
+                and self._player_location[1] == self.exit.position[1]:
+            return True
+        return False
 
     def lock_door(self, direction):
         room = self.get_room(self.player_location[0], self.player_location[1])
@@ -156,16 +207,17 @@ class Maze:
             return False
 
 
-if __name__ == '__main__':
-    test = Maze(4, 4)
-    print(test.check_traversal(test.player_location[0], test.player_location[1]))
-    movements = ["north", "south", "north", "west", "east", "east", "east", "east", "east"]
-    for direction in movements:
-        test.move_player(direction)
-        print(test.player_location)
-    test.lock_door("south")
-    print(test.check_traversal(test.player_location[0], test.player_location[1]))
-    test.lock_door("west")
-    print(test.check_traversal(test.player_location[0], test.player_location[1]))
-
+# if __name__ == '__main__':
+    # test = Maze(4, 4)
+    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
+    # movements = ["north", "south", "north", "west", "east", "east", "east", "east", "east"]
+    # for direction in movements:
+    #     test.move_player(direction)
+    #     print(test.player_location)
+    # test.lock_door("south")
+    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
+    # test.lock_door("west")
+    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
+    #
+    #
 
