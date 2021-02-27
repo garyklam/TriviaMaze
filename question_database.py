@@ -5,7 +5,7 @@ from sqlite3 import Error
 
 class SQLDatabase:
 
-    def __init__(self, category=None, difficulty="easy", target=144):
+    def __init__(self, category=None, difficulty="easy", target=180):
         self.category = category
         self.difficulty = difficulty
         self.target = (target//10 + 1) * 10

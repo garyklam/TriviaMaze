@@ -39,7 +39,6 @@ class Maze:
         self._difficulty = "easy"
         self._category = None
         self.grid = None
-        # self.construct()
         self.visited_rooms = []
 
     @property
@@ -54,7 +53,7 @@ class Maze:
     def category(self):
         return self._category
 
-    def get_total_rooms(self):
+    def get_total_doors(self):
         return self.rows * (self.cols-1) + self.cols * (self.rows-1)
 
     def get_size(self):
@@ -108,30 +107,41 @@ class Maze:
         else:
             pass
 
+    def player_wins(self):
+        if self._player_location[0] == self.exit.position[0] \
+                and self._player_location[1] == self.exit.position[1]:
+            return True
+        return False
+
     def lock_door(self, direction):
         room = self.get_room(self.player_location[0], self.player_location[1])
         room.lock_door(direction)
 
-    def check_traversal(self, row, col):
+    def is_completable(self):
+        visited = []
+        row, col = self.player_location[0], self.player_location[1]
+        return self.check_traversal(row, col, visited)
+
+    def check_traversal(self, row, col, visited):
         """
         Checks if it is possible to reach the exit and all of the pillars from the initial location passed in. Keeps a
         list of rooms that have been visited to avoid an infinite loop. The list of unique rooms used to place the
         pillars, entrance, and exit is used to check if the all of the rooms have been visited.
         """
         found_path = False
-        if self.grid[row][col] not in self.visited_rooms:
-            self.visited_rooms.append(self.grid[row][col])
-            if self.exit in self.visited_rooms:
+        if self.grid[row][col] not in visited:
+            visited.append(self.grid[row][col])
+            if self.exit in visited:
                 found_path = True
             else:
                 if not found_path and self.check_north(row, col):
-                    found_path = self.check_traversal(row-1, col)
+                    found_path = self.check_traversal(row-1, col, visited)
                 if not found_path and self.check_west(row, col):
-                    found_path = self.check_traversal(row, col-1)
+                    found_path = self.check_traversal(row, col-1, visited)
                 if not found_path and self.check_south(row, col):
-                    found_path = self.check_traversal(row+1, col)
+                    found_path = self.check_traversal(row+1, col, visited)
                 if not found_path and self.check_east(row, col):
-                    found_path = self.check_traversal(row, col+1)
+                    found_path = self.check_traversal(row, col+1, visited)
         return found_path
 
     def in_bounds(self, row, col):
@@ -202,15 +212,14 @@ class Maze:
 
 
 # if __name__ == '__main__':
-    # test = Maze(4, 4)
-    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
-    # movements = ["north", "south", "north", "west", "east", "east", "east", "east", "east"]
-    # for direction in movements:
-    #     test.move_player(direction)
-    #     print(test.player_location)
-    # test.lock_door("south")
-    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
-    # test.lock_door("west")
-    # print(test.check_traversal(test.player_location[0], test.player_location[1]))
-    #
-    #
+#     test = Maze(4, 4)
+#     test.construct()
+#     print(test.is_completable())
+#     movements = ["north", "south", "north", "west", "east", "east", "east", "east", "east"]
+#     for direction in movements:
+#         test.move_player(direction)
+#         print(test.player_location)
+#     test.lock_door("south")
+#     print(test.is_completable())
+#     test.lock_door("west")
+#     print(test.is_completable())
