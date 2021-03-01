@@ -40,6 +40,7 @@ class Maze:
         self._category = None
         self.grid = None
         self.visited_rooms = []
+        self.stats = {}
 
     @property
     def player_location(self):
