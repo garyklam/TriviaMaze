@@ -9,8 +9,8 @@ class SQLDatabase:
         self.category = category
         self.difficulty = difficulty
         self.target = (target//10 + 1) * 10
-        trivia_token = requests.get("https://opentdb.com/api_token.php?command=request").json()
-        self.trivia_token = trivia_token["token"]
+        # trivia_token = requests.get("https://opentdb.com/api_token.php?command=request").json()
+        # self.trivia_token = trivia_token["token"]
         self.category_list = self.get_category_list()
         if category:
             self.category_id = self.category_list[self.category]
@@ -85,7 +85,8 @@ class SQLDatabase:
         if self.category:
             category_url = "&category=" + self.category_id
         difficulty_url = "&difficulty=" + difficulty
-        token_url = "&token=" + self.trivia_token
+        # token_url = "&token=" + self.trivia_token
+        token_url = ""
         trivia_url = "https://opentdb.com/api.php?" + amount_url + category_url + difficulty_url + token_url
         q_response = requests.get(trivia_url).json()
         questions = q_response["results"]
@@ -159,8 +160,9 @@ class SQLDatabase:
         return db_question_count
 
 
-# if __name__ == '__main__':
-#     db = SQLDatabase()
-#     db.set_category("Entertainment: Music")
-#     db.set_difficulty("hard")
-#     db.build_database()
+if __name__ == '__main__':
+    # db = SQLDatabase()
+    # db.set_category("Entertainment: Music")
+    # db.set_difficulty("hard")
+    # db.build_database()
+    print(SQLDatabase.get_category_list())
