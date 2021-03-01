@@ -2,11 +2,10 @@ from maze import Maze
 from MazeDrawer import Drawer
 from question_database import SQLDatabase
 from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu, LabelFrame
-from tkinter.constants import E, W, N, S
+from tkinter.constants import E, W, N
 import sqlite3
 import html
 import pickle
-import random
 
 
 class MazeGUI:
@@ -207,18 +206,23 @@ class MazeGUI:
                 warning.destroy()
 
             warning = Toplevel()
-            warning_text = Label(warning, font="Times 16", pady=10, text="Are you sure you wish to exit? \n"
+            warning_text = Label(warning, font="Times 20", pady=10, text="Are you sure you wish to exit? \n"
                                                                          "Any unsaved progress will not be kept.")
             warning_text.grid(row=0, column=0, columnspan=4)
-            ok_button = Button(warning, text="Ok", command=close).grid(row=1, column=1)
-            back_button = Button(warning, text="Back", command=back).grid(row=1, column=2)
+            ok_button = Button(warning, text="Ok", font='Times 16', command=close).grid(row=1, column=1)
+            back_button = Button(warning, text="Back", font='Times 16', command=back).grid(row=1, column=2)
 
         def display_help():
             """Prints out the instruction text from the in the text display."""
-            pass
+            instruction_file = open("triviamaze_instructions.txt", 'r')
+            instruction_text = instruction_file.read()
+            instruction_file.close()
+            help_window = Toplevel()
+            help_label = Label(help_window, text=instruction_text, font='Times 14')
+            help_label.grid(row=0, column=0)
 
         menubar = Menu(self.root)
-        menubar.add_command(label="Help", command=display_help())
+        menubar.add_command(label="Help", command=display_help)
         savemenu = Menu(menubar, tearoff=0)
         savemenu.add_command(label="Save 1", command=lambda: self.prompt("save_file_1", "save"))
         savemenu.add_command(label="Save 2", command=lambda: self.prompt("save_file_2", "save"))

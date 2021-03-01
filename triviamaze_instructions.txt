@@ -1,0 +1,15 @@
+Welcome to the TriviaMaze!
+
+Your goal is to reach the exit located in the bottom right of the maze.
+
+The difficulty determines the size of the maze and the difficulty of the questions.
+
+Choosing the custom difficulty will allow you to select a specific category of questions.
+
+Attempting to enter a room that you have not yet visited will require you to correctly answer a trivia question.
+
+Incorrectly answering a question will lock the door you attempted pass.
+
+Traveling between rooms that you have already visited does not require you to answer a question.
+
+Once the exit cannot be reached the game will end.
