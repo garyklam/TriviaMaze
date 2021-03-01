@@ -1,8 +1,8 @@
 from maze import Maze
 from MazeDrawer import Drawer
 from question_database import SQLDatabase
-from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu
-from tkinter.constants import E, W
+from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu, LabelFrame
+from tkinter.constants import E, W, N, S
 import sqlite3
 import html
 import pickle
@@ -73,7 +73,7 @@ class MazeGUI:
                              command=lambda: set_difficulty("Easy"))
         easy_button.grid(row=2, column=0, sticky=W)
         continue_game_button = Button(menu_spacer2, text="Continue Game", font="Times 20",
-                                      command=self.display_saves)
+                                      command=self.display_load_menu)
         continue_game_button.grid(row=5, column=1, columnspan=2, sticky=W)
         instructions_button = Button(menu_spacer2, text="Instructions", font="Times 20",
                                      command=self.display_instructions)
@@ -101,23 +101,32 @@ class MazeGUI:
         if type == "save":
             confirm_text = "Any existing data in this save file will be written over." \
                            "\nAre you sure you wish to continue?"
-            ok_button = Button(self.text_display, text="Yes", command=lambda: self.save_game(savefile))
+            ok_button = Button(self.text_display, text="Yes", font='Times 20', command=lambda: self.save_game(savefile))
         else:
             confirm_text = "Any unsaved progress will be lost when loading a save file.\n " \
                            "Are you sure you wish to continue?"
-            ok_button = Button(self.text_display, text="Yes", command=lambda: self.load_game(savefile))
-        ok_button.grid(row=1, column=1)
-        warning_text = Label(self.text_display, font="Times 16", pady=10, text=confirm_text)
-        warning_text.grid(row=0, column=0, columnspan=4)
-        back_button = Button(self.text_display, text="No", command=lambda: self.clear_text_display())
-        back_button.grid(row=1, column=2)
+            ok_button = Button(self.text_display, text="Yes", font='Times 20',
+                               command=lambda: self.load_game("", savefile))
+        ok_button.grid(row=1, column=2)
+        warning_text = Label(self.text_display, font="Times 18", padx=10, pady=10, text=confirm_text)
+        warning_text.grid(row=0, column=1, columnspan=4)
+        back_button = Button(self.text_display, text="No", font='Times 20', command=lambda: self.clear_text_display())
+        back_button.grid(row=1, column=3)
 
-    def load_game(self, savefile):
+    def load_game(self, event, savefile, curr_frame=None):
         """Set maze fields to the save state, self.start_game"""
-        loadhandle = open(savefile+'.pkl', 'rb')
+        try:
+            loadhandle = open(savefile+'.pkl', 'rb')
+        except FileNotFoundError:
+            return
         mazedata = pickle.load(loadhandle)
         loadhandle.close()
         self.maze = mazedata
+        if not curr_frame:
+            self.display.destroy()
+        else:
+            curr_frame.destroy()
+            self.screen_switch(self.startmenu, self.gamescreen)
         self.start_game()
 
     def save_game(self, savefile):
@@ -125,16 +134,43 @@ class MazeGUI:
         pickle.dump(self.maze, savehandle)
         savehandle.close()
         self.clear_text_display()
-        confirmation = Label(self.text_display, font="Times 16", pady=10, text="Successfully saved")
+        confirmation = Label(self.text_display, font="Times 18", pady=10, padx=120, text="Successfully saved", )
         confirmation.grid(row=0, column=0)
-        back_button = Button(self.text_display, text="Continue", command=self.clear_text_display)
+        back_button = Button(self.text_display, text="Continue", font='Times 18', command=self.clear_text_display)
         back_button.grid(row=1, column=0)
 
-    def display_saves(self):
-        saves = Frame(self.root, height=600, width=600)
+    def display_load_menu(self):
+        saves = Frame(self.root, height=650, width=650, bg='SystemButtonFace')
         saves.grid(row=0, column=0)
-        for i in range(4):
-            pass
+        save = []
+        load_instruct = "Loading will take a few seconds, and can be inconsistent.\n" \
+                        "Wait a moment before clicking a save file again or exit the load menu and try again."
+        instruct = Label(saves, text=load_instruct, font='Times 12')
+        instruct.grid(row=0, column=0)
+        for i in range(1, 4):
+            savelabel = LabelFrame(saves, height=175, width=550, text=f'Save {i}', cursor='hand1', font='Times 16')
+            save.append(savelabel)
+        for i in range(1, 4):
+            save[i-1].grid(row=i, column=0, sticky=E)
+            save[i-1].grid_propagate(0)
+            try:
+                loadhandle = open(f'save_file_{i}.pkl', 'rb')
+                maze = pickle.load(loadhandle)
+                info = [f'Rows: {maze.get_size()[0]}', f'Columns: {maze.get_size()[1]}',
+                        f'Difficulty: {maze.difficulty}', f'Category: {maze.category}',
+                        f'Position: {maze.player_location}']
+                for j in range(len(info)):
+                    label = Label(save[i-1], text=info[j], font='Times 14', anchor=W, padx=20, pady=10)
+                    label.grid(row=j%2, column=j//2, sticky=W)
+                loadhandle.close()
+            except FileNotFoundError:
+                continue
+        save[0].bind('<Button-1>', lambda event: self.load_game(event, "save_file_1", saves))
+        save[1].bind('<Button-1>', lambda event: self.load_game(event, "save_file_2", saves))
+        save[2].bind('<Button-1>', lambda event: self.load_game(event, "save_file_3", saves))
+        back_button = Button(saves, text="Back", font='Times 20', anchor=N,
+                             command=lambda: self.screen_switch(saves, self.startmenu))
+        back_button.grid(row=4, column=0)
 
     def start_new_game(self):
         self.maze.construct()
@@ -143,7 +179,13 @@ class MazeGUI:
 
     def start_game(self):
         """Builds game screen and database of questions, switches to game screen."""
-        self.game_display_init()
+        self._menu_init()
+        self._movement_interface_init()
+        size = self.maze.get_size()
+        self.display = Canvas(self.gamescreen, height=size[0] * 100, width=size[1] * 100, bg="white")
+        self.drawer = Drawer(self.maze, self.display)
+        self.drawer.draw()
+        self.display.grid(row=0, column=0, columnspan=4)
         db = SQLDatabase(self.maze.category, self.maze.difficulty, self.maze.get_total_doors())
         db.build_database()
         self.db = sqlite3.connect('trivia_maze_questions.db')
@@ -153,14 +195,6 @@ class MazeGUI:
         new_frame.grid(row=0, column=0)
 
     """Game Screen"""
-    def game_display_init(self):
-        self._menu_init()
-        self._movement_interface_init()
-        size = self.maze.get_size()
-        self.display = Canvas(self.gamescreen, height=size[0]*100, width=size[1]*100, bg="white")
-        self.drawer = Drawer(self.maze, self.display)
-        self.drawer.draw()
-        self.display.grid(row=0, column=0, columnspan=4)
 
     def _menu_init(self):
         """"""
@@ -291,13 +325,13 @@ class MazeGUI:
             text.grid(row=0, column=0, columnspan=2)
         if not self.maze.is_completable():
             text = Label(self.text_display, text=f'Game Over\nYou can no longer reach the exit.', font="Times 26",
-                         justify="right", wraplength=600)
-            text.grid(row=0, column=0, columnspan=2)
-            replay = Button(self.text_display, text="Replay", font="Times 16",
+                         padx=20)
+            text.grid(row=0, column=0, columnspan=4)
+            replay = Button(self.text_display, text="Replay", font="Times 20",
                             command=lambda: self.screen_switch(self.gamescreen, self.startmenu))
-            replay.grid(row=1, column=0)
-            exit = Button(self.text_display, text="Exit", font="Times 16", command=lambda: close(self.root))
-            exit.grid(row=1, column=1)
+            replay.grid(row=1, column=1)
+            exit = Button(self.text_display, text="Exit", font="Times 20", command=lambda: close(self.root))
+            exit.grid(row=1, column=2)
 
     def display_question(self, direction):
         """If a question is currently being displayed, pass. If the room that the player is moving too has already been
@@ -328,8 +362,8 @@ class MazeGUI:
             c.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT 1;")
             question = c.fetchone()
             question_text = Label(self.text_display, text=f'{html.unescape(question[1])}', font="Times 16",
-                                  justify="left", wraplength=600)
-            question_text.grid(row=0, column=0, sticky=E+W)
+                                  justify="left", wraplength=600, anchor=W, width=600)
+            question_text.grid(row=0, column=0)
             correct_answer = Label(self.text_display, text=f'\t{html.unescape(question[2])}', font="Times 14", anchor=W)
             correct_answer.bind('<Button-1>', lambda event: self._move_player(event, direction))
             incorrect1 = Label(self.text_display, text=f'\t{html.unescape(question[3])}', font="Times 14", anchor=W)
@@ -363,12 +397,6 @@ class MazeGUI:
             correct_answer.bind('<Leave>', lambda event: unhighlight_selection(event, correct_answer))
             incorrect1.bind('<Enter>', lambda event: highlight_selection(event, incorrect1))
             incorrect1.bind('<Leave>', lambda event: unhighlight_selection(event, incorrect1))
-
-
-    # def highlight_selection(self, event, label):
-    #     label['background'] = 'green'
-    #
-    # def unhighlight_selection(self, event, label):
 
     def clear_text_display(self):
         for item in self.text_display.winfo_children():
