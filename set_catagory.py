@@ -1,3 +1,5 @@
+# Not final version.Need further modification.Still working on it.
+
 from tkinter import *
 from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu, LabelFrame
 
