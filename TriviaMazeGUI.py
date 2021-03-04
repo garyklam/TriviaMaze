@@ -6,6 +6,7 @@ from tkinter.constants import E, W, N
 import sqlite3
 import html
 import pickle
+import time
 
 
 class MazeGUI:
@@ -17,6 +18,7 @@ class MazeGUI:
         self.db = None
         self.display = None
         self.drawer = None
+        self.start_time = None
         self.root.resizable(False, False)
         self.root.title("TriviaMaze")
         self.start_menu_init()
@@ -26,8 +28,9 @@ class MazeGUI:
 
     """Start menu"""
     def start_menu_init(self):
-        """Builds the start menu for the game. Has a button to start a new game, display instructions and exit the
-        program."""
+        """Builds the start menu for the game. Has a button to start a new game, continue game, display instructions and
+         exit the program. Under the new game button there are options for different game difficulties, with easy as the
+         default selection."""
         def set_difficulty(difficulty):
             if difficulty == "Hard":
                 maze.resize_dungeon(8, 8)
@@ -61,12 +64,11 @@ class MazeGUI:
         title = Label(self.startmenu, text="504 TriviaMaze", font="Times 40", pady=50)
         title.grid(row=1, column=0, columnspan=4)
         new_game_button = Button(menu_spacer2, text="New Game", font="Times 20",
-                                 command= self.start_new_game)
+                                 command=lambda: self.start_game(new_game=True))
         new_game_button.grid(row=3, column=1, sticky=W)
         hard_button = Button(menu_spacer3, text="Hard", font="Times 12", command=lambda: set_difficulty("Hard"))
         hard_button.grid(row=0, column=0, sticky=W)
-        medium_button = Button(menu_spacer3, text="Medium", font="Times 12",
-                               command=lambda: set_difficulty("Medium"))
+        medium_button = Button(menu_spacer3, text="Medium", font="Times 12", command=lambda: set_difficulty("Medium"))
         medium_button.grid(row=1, column=0, sticky=W)
         easy_button = Button(menu_spacer3, text="Easy", font="Times 12", relief="sunken",
                              command=lambda: set_difficulty("Easy"))
@@ -93,9 +95,16 @@ class MazeGUI:
         t.insert("1.0", instruction_text)
         instruction_file.close()
         back_button = Button(instruct_frame, text="Back", font="Times 20",
-                             command=lambda: self.screen_switch(instruct_frame, self.startmenu)).grid(row=1, column=0)
+                             command=lambda: self.screen_switch(instruct_frame, self.startmenu))
+        back_button.grid(row=1, column=0)
 
     def prompt(self, savefile, type):
+        """Creates a text prompt in the text display of the game screen asking the player to confirm their save/load.
+        Prompt message depend on whether the player wishes to save or load. Upon confirming their action the save or
+        load is initiated with the indicated save file.
+        savefile: name of the save file as a string
+        type: type of request, either 'save' or 'load'
+        """
         self.clear_text_display()
         if type == "save":
             confirm_text = "Any existing data in this save file will be written over." \
@@ -112,23 +121,47 @@ class MazeGUI:
         back_button = Button(self.text_display, text="No", font='Times 20', command=lambda: self.clear_text_display())
         back_button.grid(row=1, column=3)
 
-    def load_game(self, event, savefile, curr_frame=None):
-        """Set maze fields to the save state, self.start_game"""
+    def load_game(self, event, savefile, load_menu=None):
+        """Attempts to open the indicated save file. If it is not found and the load request came from the load menu,
+        nothing happens, if the load request came from in game, displays an error message in the text display before
+        returning. If the file is found, the maze is set equal to the save file data, the existing display is switched,
+        the game restarts with the new maze.
+        savefile: name of the save file as a string
+        load_menu: load menu frame, used to indicate if the load request came from the load menu or in game,
+        default is None
+        """
         try:
             loadhandle = open(savefile+'.pkl', 'rb')
         except FileNotFoundError:
-            return
+            if load_menu:
+                return
+            else:
+                self.clear_text_display()
+                no_file_found_text = "No save file could be found for this save slot."
+                no_file = Label(self.text_display, text=no_file_found_text, font='Times 20', padx=30, pady=40)
+                no_file.grid(row=0, column=0)
+                continue_button = Button(self.text_display, text='Continue', font='Times 20',
+                                         command=self.clear_text_display)
+                continue_button.grid(row=1, column=0)
+                return
         mazedata = pickle.load(loadhandle)
         loadhandle.close()
         self.maze = mazedata
-        if not curr_frame:
+        if not load_menu:
             self.display.destroy()
         else:
-            curr_frame.destroy()
+            load_menu.destroy()
             self.screen_switch(self.startmenu, self.gamescreen)
         self.start_game()
 
     def save_game(self, savefile):
+        """
+        Sets the time elapsed field for the maze and saves the current maze to the indicated save file. Displays a
+        message in the text display to tell the player that the save was completed.
+        savefile: name of the save file as a string
+        """
+        self.maze.set_time_elapsed(self.start_time, int(time.time()))
+        self.start_time = int(time.time())
         savehandle = open(savefile+'.pkl', 'wb')
         pickle.dump(self.maze, savehandle)
         savehandle.close()
@@ -139,6 +172,11 @@ class MazeGUI:
         back_button.grid(row=1, column=0)
 
     def display_load_menu(self):
+        """
+        Builds a load menu that displays the three save slots. Loads the save information if the save file exists and
+        uses different maze methods/fields to obtain information about the save such as the maze size, player location,
+        trivia category, trivia difficulty, and time spent in game and displays this info.
+        """
         saves = Frame(self.root, height=650, width=650, bg='SystemButtonFace')
         saves.grid(row=0, column=0)
         save = []
@@ -157,10 +195,10 @@ class MazeGUI:
                 maze = pickle.load(loadhandle)
                 info = [f'Rows: {maze.get_size()[0]}', f'Columns: {maze.get_size()[1]}',
                         f'Difficulty: {maze.difficulty}', f'Category: {maze.category}',
-                        f'Position: {maze.player_location}']
+                        f'Position: {maze.player_location}', f'Time: {maze.get_time()}']
                 for j in range(len(info)):
                     label = Label(save[i-1], text=info[j], font='Times 14', anchor=W, padx=20, pady=10)
-                    label.grid(row=j%2, column=j//2, sticky=W)
+                    label.grid(row=j % 2, column=j//2, sticky=W)
                 loadhandle.close()
             except FileNotFoundError:
                 continue
@@ -171,32 +209,38 @@ class MazeGUI:
                              command=lambda: self.screen_switch(saves, self.startmenu))
         back_button.grid(row=4, column=0)
 
-    def start_new_game(self):
-        self.maze.construct()
-        self.start_game()
-        self.screen_switch(self.startmenu, self.gamescreen)
-
-    def start_game(self):
-        """Builds game screen and database of questions, switches to game screen."""
+    def start_game(self, new_game=False):
+        """Builds game screen and database of questions, switches to game screen, saves the current time for use in
+        tracking the play time.
+        new_game: boolean indicating if the game is being loaded from a save file or if it is a new game
+        """
+        if new_game:
+            self.maze.construct()
+            self.screen_switch(self.startmenu, self.gamescreen)
         self._menu_init()
         self._movement_interface_init()
         size = self.maze.get_size()
-        self.display = Canvas(self.gamescreen, height=size[0] * 100, width=size[1] * 100, bg="white")
+        self.display = Canvas(self.gamescreen, height=size[0] * 100, width=size[1] * 100, bg="gray")
         self.drawer = Drawer(self.maze, self.display)
         self.drawer.draw()
         self.display.grid(row=0, column=0, columnspan=4)
         db = SQLDatabase(self.maze.category, self.maze.difficulty, self.maze.get_total_doors())
         db.build_database()
         self.db = sqlite3.connect('trivia_maze_questions.db')
+        self.start_time = int(time.time())
 
     def screen_switch(self, curr_frame, new_frame):
+        """Switches the main display from the current frame to the desired frame.
+        curr_frame: current frame that is being displayed
+        new_frame: the desired frame
+        """
         curr_frame.grid_forget()
         new_frame.grid(row=0, column=0)
 
     """Game Screen"""
-
     def _menu_init(self):
-        """"""
+        """Creates the menubar consisting of options for loading a game, saving the current game, getting instructions,
+        or exiting the game."""
         def confirm_exit(root):
             """Creates a popup that makes sure the user wishes to exit the program."""
             def close():
@@ -307,17 +351,17 @@ class MazeGUI:
             self.west["state"] = "disabled"
 
     def _move_player(self, event, direction, correct=True):
-        """Moves the player and adds the new room to the list of visited rooms if correct, if not, then the corresonding
-        door is locked. In both cases the game display is redrawn, the movement buttons are reset and any text that is
-        in the text display is deleted."""
+        """Moves the player and adds the new room to the list of visited rooms if correct. If incorrect, then the
+        corresponding door is locked. In both cases the game display is redrawn, the movement buttons are reset and
+        any text that is in the text display is deleted. Afterwards, the win and lose conditions are checked, if either
+        is true then the corresponding end game message is displayed.
+        direction: string representing the direction the player is moving
+        correct: boolean indicating if the player correctly answered the trivia question"""
         def close(window):
             window.destroy()
 
         if correct:
             self.maze.move_player(direction)
-            row, col = self.maze.player_location[0], self.maze.player_location[1]
-            room = self.maze.get_room(row, col)
-            self.maze.visited_rooms.append(room)
         else:
             self.maze.lock_door(direction)
         self.drawer.draw()
@@ -340,6 +384,7 @@ class MazeGUI:
     def display_question(self, direction):
         """If a question is currently being displayed, pass. If the room that the player is moving too has already been
         visited, then move the player. Otherwise, pull a question from the database, and display it in the text display.
+        direction: string representing the direction that the player is attempting to move in
         """
         def highlight_selection(event, label):
             label['bg'] = 'gray'
@@ -355,7 +400,7 @@ class MazeGUI:
             destination = [self.maze.player_location[0] + 1, self.maze.player_location[1]]
         elif direction == "east":
             destination = [self.maze.player_location[0], self.maze.player_location[1] + 1]
-        elif direction == "west":
+        else:
             destination = [self.maze.player_location[0], self.maze.player_location[1] - 1]
         if self.maze.get_room(destination[0], destination[1]) in self.maze.visited_rooms:
             self.maze.move_player(direction)
@@ -403,9 +448,10 @@ class MazeGUI:
             incorrect1.bind('<Leave>', lambda event: unhighlight_selection(event, incorrect1))
 
     def clear_text_display(self):
+        """Clears items in the text display."""
         for item in self.text_display.winfo_children():
             item.destroy()
 
+
 if __name__ == '__main__':
     game = MazeGUI()
-
