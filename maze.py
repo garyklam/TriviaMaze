@@ -41,6 +41,7 @@ class Maze:
         self.grid = None
         self.visited_rooms = []
         self.stats = {}
+        self._time_elapsed = 0
 
     @property
     def player_location(self):
@@ -64,6 +65,13 @@ class Maze:
         """Returns room object located at the given row and column."""
         return self.grid[row][col]
 
+    def get_time(self):
+        """Returns the time elapsed in digital clock format: (hour:minute:second)"""
+        hours = self._time_elapsed // 3600
+        minutes = (self._time_elapsed - hours * 3600) // 60
+        seconds = (self._time_elapsed - hours * 3600 - minutes * 60)
+        return f'{str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}'
+
     def resize_dungeon(self, row, col):
         """
         Alters dimension fields of the dungeon, does not create a new grid of rooms, needs to call generate to actually
@@ -77,6 +85,9 @@ class Maze:
 
     def set_category(self, category):
         self._category = category
+
+    def set_time_elapsed(self, start, current):
+        self._time_elapsed += current - start
 
     def construct(self):
         self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
@@ -107,6 +118,8 @@ class Maze:
             self.player_location[1] = self.player_location[1] + 1
         else:
             pass
+        room = self.get_room(self.player_location[0], self.player_location[1])
+        self.visited_rooms.append(room)
 
     def player_wins(self):
         if self._player_location[0] == self.exit.position[0] \
