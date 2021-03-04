@@ -12,20 +12,20 @@ class Drawer:
         doors to avoid overlapping lines causing doors to be obscoured in the map. Returns the canvas object after
         drawing all features."""
         self.canvas.delete("all")
+        for room in self.maze.visited_rooms:
+            self.highlight_room(room)
         for row in self.maze.grid:
             for room in row:
                 self.draw_walls(room)
-        for row in self.maze.grid:
-            for room in row:
-                self.draw_door(room)
+        for room in self.maze.visited_rooms:
+            self.draw_door(room)
         self.draw_exit()
         self.draw_player()
 
     def draw_walls(self, room):
         """Draws a rectangle representing a room in the dungeon in the canvas that is passed in. Uses the position of
         the room to position the rectangle within the canvas."""
-        position = room.position
-        row, col = position[0], position[1]
+        row, col = room.position[0], room.position[1]
         self.canvas.create_rectangle(self.room_unit * col+4, self.room_unit * row+4, self.room_unit * (col+1),
                                 self.room_unit * (row+1), width=4)
 
@@ -62,3 +62,8 @@ class Drawer:
         if self.maze.check_east(row, col):
             self.canvas.create_rectangle(self.room_unit * (col+1) + 5, self.room_unit * row + 23,
                                     self.room_unit * (col+1) - 1, self.room_unit * row + 83, fill="white", outline="")
+
+    def highlight_room(self, room):
+        row, col = room.position[0], room.position[1]
+        self.canvas.create_rectangle(self.room_unit * col, self.room_unit * row, self.room_unit * (col + 1),
+                                     self.room_unit * (row + 1), fill='white', outline="")
