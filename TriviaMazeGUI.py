@@ -7,6 +7,7 @@ import sqlite3
 import html
 import pickle
 import time
+import winsound
 
 
 class MazeGUI:
@@ -153,6 +154,7 @@ class MazeGUI:
             load_menu.destroy()
             self.screen_switch(self.startmenu, self.gamescreen)
         self.start_game()
+        winsound.PlaySound('sfx/load_tone.wav', winsound.SND_FILENAME)
 
     def save_game(self, savefile):
         """
@@ -170,6 +172,7 @@ class MazeGUI:
         confirmation.grid(row=0, column=0)
         back_button = Button(self.text_display, text="Continue", font='Times 18', command=self.clear_text_display)
         back_button.grid(row=1, column=0)
+        winsound.PlaySound('sfx/save_tone.wav', winsound.SND_FILENAME)
 
     def display_load_menu(self):
         """
@@ -362,8 +365,10 @@ class MazeGUI:
 
         if correct:
             self.maze.move_player(direction)
+            winsound.PlaySound('sfx/walk.wav', winsound.SND_FILENAME)
         else:
             self.maze.lock_door(direction)
+            winsound.PlaySound('sfx/door_lock.wav', winsound.SND_FILENAME)
         self.drawer.draw()
         self._set_move_button_state()
         self.clear_text_display()
@@ -371,6 +376,7 @@ class MazeGUI:
             text = Label(self.text_display, text=f'Congrats, you have won the game!', font="Times 26",
                          justify="right", wraplength=600)
             text.grid(row=0, column=0, columnspan=2)
+            winsound.PlaySound('sfx/game_win.wav', winsound.SND_FILENAME)
         if not self.maze.is_completable():
             text = Label(self.text_display, text=f'Game Over\nYou can no longer reach the exit.', font="Times 26",
                          padx=20)
@@ -380,6 +386,7 @@ class MazeGUI:
             replay.grid(row=1, column=1)
             exit = Button(self.text_display, text="Exit", font="Times 20", command=lambda: close(self.root))
             exit.grid(row=1, column=2)
+            winsound.PlaySound('sfx/game_lose.wav', winsound.SND_FILENAME)
 
     def display_question(self, direction):
         """If a question is currently being displayed, pass. If the room that the player is moving too has already been
@@ -406,6 +413,7 @@ class MazeGUI:
             self.maze.move_player(direction)
             self.drawer.draw()
             self._set_move_button_state()
+            winsound.PlaySound('sfx/walk_short.wav', winsound.SND_FILENAME)
         else:
             c = self.db.cursor()
             c.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT 1;")
