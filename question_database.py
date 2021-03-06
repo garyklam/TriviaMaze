@@ -114,7 +114,7 @@ class SQLDatabase:
         if conn:
             try:
                 c = conn.cursor()
-                c.execute("DROP TABLE IF EXISTS multiple;")
+                c.execute("DROP TABLE IF EXISTS questions;")
             except Error as e:
                 print(e)
         if conn:
