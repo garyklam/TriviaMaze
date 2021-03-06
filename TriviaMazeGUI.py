@@ -35,24 +35,20 @@ class MazeGUI:
         def set_difficulty(difficulty):
             if difficulty == "Hard":
                 maze.resize_dungeon(8, 8)
-                maze.set_difficulty("hard")
-                easy_button["relief"] = "raised"
-                medium_button["relief"] = "raised"
-                hard_button["relief"] = "sunken"
             elif difficulty == "Medium":
                 maze.resize_dungeon(6, 6)
-                maze.set_difficulty("medium")
-                easy_button["relief"] = "raised"
-                medium_button["relief"] = "sunken"
-                hard_button["relief"] = "raised"
             elif difficulty == "Easy":
                 maze.resize_dungeon(4, 4)
-                maze.set_difficulty("easy")
-                easy_button["relief"] = "sunken"
-                medium_button["relief"] = "raised"
-                hard_button["relief"] = "raised"
             else:
                 pass
+            maze.set_difficulty(difficulty.lower())
+            set_buttons(difficulty)
+
+        def set_buttons(difficulty):
+            buttons = {"Easy": easy_button, "Medium": medium_button, "Hard": hard_button}
+            for button in buttons.values():
+                button['relief'] = 'raised'
+            buttons[difficulty]['relief'] = 'sunken'
 
         maze = self.maze
         self.startmenu.grid(row=0, column=0)
