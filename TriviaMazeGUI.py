@@ -1,7 +1,7 @@
 from maze import Maze
 from MazeDrawer import Drawer
 from question_database import SQLDatabase
-from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu
+from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu, Entry
 from tkinter.constants import END, W
 import sqlite3
 import html
@@ -31,21 +31,19 @@ class MazeGUI:
         """Builds the start menu for the game. Has a button to start a new game, display instructions and exit the
         program."""
 
-        def set_difficulty(difficulty):
+        def set_difficulty(difficulty, row_size, col_size):
+            maze.resize_dungeon(int(row_size), int(col_size))
             if difficulty == "Hard":
-                maze.resize_dungeon(8, 8)
                 maze.set_difficulty("hard")
                 easy_button["relief"] = "raised"
                 medium_button["relief"] = "raised"
                 hard_button["relief"] = "sunken"
             elif difficulty == "Medium":
-                maze.resize_dungeon(6, 6)
                 maze.set_difficulty("medium")
                 easy_button["relief"] = "raised"
                 medium_button["relief"] = "sunken"
                 hard_button["relief"] = "raised"
             elif difficulty == "Easy":
-                maze.resize_dungeon(4, 4)
                 maze.set_difficulty("easy")
                 easy_button["relief"] = "sunken"
                 medium_button["relief"] = "raised"
@@ -66,14 +64,24 @@ class MazeGUI:
         new_game_button = Button(menu_spacer2, text="New Game", font="Times 20",
                                  command=self.start_game)
         new_game_button.grid(row=3, column=1, sticky=W)
-        hard_button = Button(menu_spacer3, text="Hard", font="Times 12", command=lambda: set_difficulty("Hard"))
-        hard_button.grid(row=0, column=0, sticky=W)
+        Label(menu_spacer3, text="Maze Row Size").grid(row=0, sticky=W)
+        Label(menu_spacer3, text="Maze Column Size").grid(row=1, sticky=W)
+        e1 = Entry(menu_spacer3)
+        e2 = Entry(menu_spacer3)
+        e1.insert(10, "4")
+        e2.insert(10, "4")
+        e1.grid(row=0, column=1, sticky=W)
+        e2.grid(row=1, column=1, sticky=W)
+        hard_button = Button(menu_spacer3, text="Hard", font="Times 12",
+                             command=lambda: set_difficulty("Hard", e1.get(), e2.get()))
+        hard_button.grid(row=2, column=0, sticky=W)
         medium_button = Button(menu_spacer3, text="Medium", font="Times 12",
-                               command=lambda: set_difficulty("Medium"))
-        medium_button.grid(row=1, column=0, sticky=W)
+                               command=lambda: set_difficulty("Medium", e1.get(), e2.get()))
+        medium_button.grid(row=3, column=0, sticky=W)
         easy_button = Button(menu_spacer3, text="Easy", font="Times 12", relief="sunken",
-                             command=lambda: set_difficulty("Easy"))
-        easy_button.grid(row=2, column=0, sticky=W)
+                             command=lambda: set_difficulty("Easy", e1.get(), e2.get()))
+        easy_button.grid(row=4, column=0, sticky=W)
+
         continue_game_button = Button(menu_spacer2, text="Continue Game", font="Times 20",
                                       command=self.load_game())
         continue_game_button.grid(row=5, column=1, columnspan=2, sticky=W)
