@@ -114,7 +114,7 @@ class SQLDatabase:
         if conn:
             try:
                 c = conn.cursor()
-                c.execute("DROP TABLE IF EXISTS multiple;")
+                c.execute("DROP TABLE IF EXISTS questions;")
             except Error as e:
                 print(e)
         if conn:
@@ -155,8 +155,8 @@ class SQLDatabase:
             while db_question_count + amount <= self.target and remaining - amount >= 0:
                 questions = self.get_questions(amount, difficulty)
                 c.executemany("INSERT INTO questions Values (?,?,?,?,?,?)", questions)
-                remaining = remaining - amount
-                db_question_count = db_question_count + amount
+                remaining -= amount
+                db_question_count += amount
         return db_question_count
 
 
