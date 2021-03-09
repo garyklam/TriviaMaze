@@ -1,7 +1,7 @@
 class Room:
 
     def __init__(self, row, column):
-        self._position = (row, column)
+        self._position = [row, column]
         self._doors = {"north": True,
                         "south": True,
                         "east": True,
@@ -10,17 +10,8 @@ class Room:
     def doors(self):
         return self._doors
 
-    def set_north_border(self):
-        self._doors["north"] = False
-
-    def set_south_border(self):
-        self._doors["south"] = False
-
-    def set_east_border(self):
-        self._doors["east"] = False
-
-    def set_west_border(self):
-        self._doors["west"] = False
+    def set_as_border(self, direction):
+        self._doors[direction.lower()] = False
 
     def lock_door(self, direction):
         self._doors[direction] = False
@@ -100,26 +91,17 @@ class Maze:
     def set_borders(self):
         """Sets the door values of the rooms on the edge of the dungeon to be walls."""
         for room in self.grid[0]:
-            room.set_north_border()
+            room.set_as_border("north")
         for room in self.grid[self.rows - 1]:
-            room.set_south_border()
+            room.set_as_border("south")
         for row in self.grid:
-            row[0].set_west_border()
-            row[self.cols - 1].set_east_border()
+            row[0].set_as_border("west")
+            row[self.cols - 1].set_as_border("east")
 
     def move_player(self, direction):
-        if direction == "north" and self.player_location[0] > 0:
-            self.player_location[0] = self.player_location[0] - 1
-        elif direction == "south" and self.player_location[0] < self.rows - 1:
-            self.player_location[0] = self.player_location[0] + 1
-        elif direction == "west" and self.player_location[1] > 0:
-            self.player_location[1] = self.player_location[1] - 1
-        elif direction == "east" and self.player_location[1] < self.cols - 1:
-            self.player_location[1] = self.player_location[1] + 1
-        else:
-            pass
-        room = self.get_room(self.player_location[0], self.player_location[1])
-        self.visited_rooms.append(room)
+        destination = self.find_destination(self.player_location[0], self.player_location[1], direction)
+        self._player_location = destination.position
+        self.visited_rooms.append(destination)
 
     def player_wins(self):
         if self._player_location[0] == self.exit.position[0] \
@@ -148,82 +130,33 @@ class Maze:
             if self.exit in visited:
                 found_path = True
             else:
-                if not found_path and self.check_north(row, col):
+                if not found_path and self.check_direction(row, col, "north"):
                     found_path = self.check_traversal(row-1, col, visited)
-                if not found_path and self.check_west(row, col):
+                if not found_path and self.check_direction(row, col, "west"):
                     found_path = self.check_traversal(row, col-1, visited)
-                if not found_path and self.check_south(row, col):
+                if not found_path and self.check_direction(row, col, "south"):
                     found_path = self.check_traversal(row+1, col, visited)
-                if not found_path and self.check_east(row, col):
+                if not found_path and self.check_direction(row, col, "east"):
                     found_path = self.check_traversal(row, col+1, visited)
         return found_path
 
-    def in_bounds(self, row, col):
-        """
-        Checks if the given row and column are within the bounds of the dungeon, returns true if it is, returns
-        false if it is not
-        """
+    def check_direction(self, row, col, direction):
+        opposite = {"north": "south", "south": "north", "west": "east", "east": "west"}
+        destination = self.find_destination(row, col, direction)
+        if destination:
+            curr = self.get_room(row, col)
+            doors1 = curr.doors()
+            doors2 = destination.doors()
+            if doors1[direction] and doors2[opposite[direction]]:
+                return True
+        return False
+
+    def find_destination(self, row, col, direction):
+        translation = {"north": [-1, 0], "south": [1, 0], "east": [0, 1], "west": [0, -1]}
+        row += translation[direction][0]
+        col += translation[direction][1]
         if 0 <= row < self.rows and 0 <= col < self.cols:
-            return True
-        else:
-            return False
-
-    def check_north(self, row, col):
-        """Checks to see if the given room has a room to the "north" and if it is possible to travel to the room.
-        If the given room has an "open" north door or if the northern room has an "open" south door, then it is
-        possible to travel between the two rooms."""
-        if self.in_bounds(row-1, col):
-            curr = self.get_room(row, col)
-            doors1 = curr.doors()
-            south = self.get_room(row-1, col)
-            doors2 = south.doors()
-            if doors1["north"] and doors2["south"]:
-                return True
-        else:
-            return False
-
-    def check_south(self, row, col):
-        """Checks to see if the given room has a room to the "south" and if it is possible to travel to the room.
-            If the given room has an "open" south door or if the southern room has an "open" north door, then it is
-            possible to travel between the two rooms."""
-        if self.in_bounds(row+1, col):
-            curr = self.get_room(row, col)
-            doors1 = curr.doors()
-            north = self.get_room(row+1, col)
-            doors2 = north.doors()
-            if doors1["south"] and doors2["north"]:
-                return True
-        else:
-            return False
-
-    def check_east(self, row, col):
-        """Checks to see if the given room has a room to the "east" and if it is possible to travel to the room.
-            If the given room has an "open" east door or if the eastern room has an "west" south door, then it is
-            possible to travel between the two rooms."""
-        if self.in_bounds(row, col+1):
-            curr = self.get_room(row, col)
-            doors1 = curr.doors()
-            west = self.get_room(row, col+1)
-            doors2 = west.doors()
-            if doors1["east"] and doors2["west"]:
-                return True
-        else:
-            return False
-
-    def check_west(self, row, col):
-        """Checks to see if the given room has a room to the "west" and if it is possible to travel to the room.
-            If the given room has an "open" west door or if the western room has an "open" west door, then it is
-            possible to travel between the two rooms."""
-        if self.in_bounds(row, col-1):
-            curr = self.get_room(row, col)
-            doors1 = curr.doors()
-            east = self.get_room(row, col-1)
-            doors2 = east.doors()
-            if doors1["west"] and doors2["east"]:
-                return True
-        else:
-            return False
-
+            return self.get_room(row, col)
 
 # if __name__ == '__main__':
 #     test = Maze(4, 4)
