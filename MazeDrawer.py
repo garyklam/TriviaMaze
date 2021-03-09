@@ -1,5 +1,5 @@
 class Drawer:
-    """Contains methods to create map objects for the adventure game."""
+    """Contains methods to draw the game display for the trivia game."""
     def __init__(self, maze, canvas):
         self.maze = maze
         self.rows = self.maze.rows
@@ -8,8 +8,8 @@ class Drawer:
         self.canvas = canvas
 
     def draw(self):
-        """Draws all of the rooms in the dungeon along with their contents. Draws walls in a separate loop from the
-        doors to avoid overlapping lines causing doors to be obscoured in the map. Returns the canvas object after
+        """Draws all of the rooms in the maze along with their contents. Draws walls in a separate loop from the
+        doors to avoid overlapping lines causing doors to be obscured in the map. Returns the canvas object after
         drawing all features."""
         self.canvas.delete("all")
         for room in self.maze.visited_rooms:
@@ -23,11 +23,11 @@ class Drawer:
         self.draw_player()
 
     def draw_walls(self, room):
-        """Draws a rectangle representing a room in the dungeon in the canvas that is passed in. Uses the position of
+        """Draws a rectangle representing a room in the maze in the canvas that is passed in. Uses the position of
         the room to position the rectangle within the canvas."""
         row, col = room.position[0], room.position[1]
         self.canvas.create_rectangle(self.room_unit * col+4, self.room_unit * row+4, self.room_unit * (col+1),
-                                self.room_unit * (row+1), width=4)
+                                     self.room_unit * (row+1), width=4)
 
     def draw_player(self):
         location = self.maze.player_location
@@ -35,33 +35,25 @@ class Drawer:
         self.canvas.create_text(self.room_unit * col + 45, self.room_unit * (row + 1) - 15, text="Player")
 
     def draw_exit(self):
-        """Draws the contents of the room passed in. Checks if the room contains the entrance or exit, then checks
-        if the room has a pillar, pit, vision potion, or healing potion. Draws the corresponding object if any
-        of the checks returns true."""
         maze_exit = self.maze.exit
-        position = maze_exit.position
-        row, col = position[0], position[1]
+        row, col = maze_exit.position[0], maze_exit.position[1]
         offset = self.room_unit // 2
         self.canvas.create_text(self.room_unit * col + offset, self.room_unit * row + offset, text="Ex", font="Times 14")
 
     def draw_door(self, room):
-        """Draws the doors of the rooms in the dungeon on the canvas that is passsed in. Checks if it is possible to
-        travel in each direction using the dungeon's check_direction method and draws a door if it is possible to
+        """Draws the doors of the rooms in the maze on the canvas that is passed in. Checks if it is possible to
+        travel in each direction using the maze's check_direction method and draws a door if it is possible to
         travel in that direction."""
-        position = room.position
-        row, col = position[0], position[1]
-        if self.maze.check_north(row, col):
-            self.canvas.create_rectangle(self.room_unit * col + 23, self.room_unit * row - 1, self.room_unit * col + 83,
-                                    self.room_unit * row + 5, fill="white", outline="")
-        if self.maze.check_south(row, col):
-            self.canvas.create_rectangle(self.room_unit * col + 23, self.room_unit * (row+1) - 1, self.room_unit * col + 83,
-                                    self.room_unit * (row+1) + 5, fill="white", outline="")
-        if self.maze.check_west(row, col):
-            self.canvas.create_rectangle(self.room_unit * col - 1, self.room_unit * row + 23, self.room_unit * col + 5,
-                                    self.room_unit * row + 83, fill="white", outline="")
-        if self.maze.check_east(row, col):
-            self.canvas.create_rectangle(self.room_unit * (col+1) + 5, self.room_unit * row + 23,
-                                    self.room_unit * (col+1) - 1, self.room_unit * row + 83, fill="white", outline="")
+        row, col = room.position[0], room.position[1]
+        directions = ["north", "south", "east", "west"]
+        cols = [col, col, col+1, col]
+        rows = [row, row+1, row, row]
+        col_offset, row_offset = [23, 83, 23, 83, -1, 5, -1, 5], [-1, 5, -1, 5, 23, 83, 23, 83]
+        for i in range(4):
+            if self.maze.check_direction(row, col, directions[i]):
+                self.canvas.create_rectangle(self.room_unit * cols[i] + col_offset[i*2], self.room_unit * rows[i] + row_offset[i*2],
+                                             self.room_unit * cols[i] + col_offset[i*2+1], self.room_unit * rows[i] + row_offset[i*2+1],
+                                             fill="white", outline="")
 
     def highlight_room(self, room):
         row, col = room.position[0], room.position[1]
