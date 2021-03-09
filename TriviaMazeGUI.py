@@ -8,6 +8,7 @@ import html
 import pickle
 import time
 import winsound
+from functools import partial
 
 
 class MazeGUI:
@@ -52,9 +53,9 @@ class MazeGUI:
 
         maze = self.maze
         self.startmenu.grid(row=0, column=0)
-        menu_spacer = Frame(self.startmenu, height=100, width=600)
+        menu_spacer = Frame(self.startmenu, height=80, width=600)
         menu_spacer.grid(row=0, column=0, columnspan=3)
-        menu_spacer2 = Frame(self.startmenu, height=400, width=100)
+        menu_spacer2 = Frame(self.startmenu, height=420, width=100)
         menu_spacer2.grid(row=2, column=1)
         menu_spacer3 = Frame(menu_spacer2)
         menu_spacer3.grid(row=4, column=1)
@@ -111,14 +112,14 @@ class MazeGUI:
             confirm_text = "Any unsaved progress will be lost when loading a save file.\n " \
                            "Are you sure you wish to continue?"
             ok_button = Button(self.text_display, text="Yes", font='Times 20',
-                               command=lambda: self.load_game("", savefile))
+                               command=lambda: self.load_game(savefile))
         ok_button.grid(row=1, column=2)
         warning_text = Label(self.text_display, font="Times 18", padx=10, pady=10, text=confirm_text)
         warning_text.grid(row=0, column=1, columnspan=4)
         back_button = Button(self.text_display, text="No", font='Times 20', command=lambda: self.clear_text_display())
         back_button.grid(row=1, column=3)
 
-    def load_game(self, event, savefile, load_menu=None):
+    def load_game(self, savefile, event=None, load_menu=None):
         """Attempts to open the indicated save file. If it is not found and the load request came from the load menu,
         nothing happens, if the load request came from in game, displays an error message in the text display before
         returning. If the file is found, the maze is set equal to the save file data, the existing display is switched,
@@ -127,8 +128,10 @@ class MazeGUI:
         load_menu: load menu frame, used to indicate if the load request came from the load menu or in game,
         default is None
         """
+        print(f'loading {savefile}')
         try:
             loadhandle = open(savefile+'.pkl', 'rb')
+            print("foundfile")
         except FileNotFoundError:
             if load_menu:
                 return
@@ -144,6 +147,7 @@ class MazeGUI:
         mazedata = pickle.load(loadhandle)
         loadhandle.close()
         self.maze = mazedata
+        print("loaded")
         if not load_menu:
             self.display.destroy()
         else:
@@ -181,14 +185,12 @@ class MazeGUI:
         save = []
         load_instruct = "Loading will take a few seconds, and can be inconsistent.\n" \
                         "Wait a moment before clicking a save file again or exit the load menu and try again."
-        instruct = Label(saves, text=load_instruct, font='Times 12')
+        instruct = Label(saves, text=load_instruct, font='Times 12', pady=10)
         instruct.grid(row=0, column=0)
         for i in range(1, 4):
             savelabel = LabelFrame(saves, height=175, width=550, text=f'Save {i}', cursor='hand1', font='Times 16')
-            save.append(savelabel)
-        for i in range(1, 4):
-            save[i-1].grid(row=i, column=0, sticky=E)
-            save[i-1].grid_propagate(0)
+            savelabel.grid(row=i, column=0, sticky=E)
+            savelabel.grid_propagate(0)
             try:
                 loadhandle = open(f'save_file_{i}.pkl', 'rb')
                 maze = pickle.load(loadhandle)
@@ -196,14 +198,14 @@ class MazeGUI:
                         f'Difficulty: {maze.difficulty}', f'Category: {maze.category}',
                         f'Position: {maze.player_location}', f'Time: {maze.get_time()}']
                 for j in range(len(info)):
-                    label = Label(save[i-1], text=info[j], font='Times 14', anchor=W, padx=20, pady=10)
-                    label.grid(row=j % 2, column=j//2, sticky=W)
+                    label = Label(savelabel, text=info[j], font='Times 14', anchor=W, padx=5, pady=10)
+                    label.grid(row=j % 2, column=j // 2, sticky=W)
                 loadhandle.close()
+                save_file = "save_file_" + str(i)
+                savelabel.bind('<Button-1>', partial(self.load_game, save_file, load_menu=saves))
             except FileNotFoundError:
                 continue
-        save[0].bind('<Button-1>', lambda event: self.load_game(event, "save_file_1", saves))
-        save[1].bind('<Button-1>', lambda event: self.load_game(event, "save_file_2", saves))
-        save[2].bind('<Button-1>', lambda event: self.load_game(event, "save_file_3", saves))
+            save.append(savelabel)
         back_button = Button(saves, text="Back", font='Times 20', anchor=N,
                              command=lambda: self.screen_switch(saves, self.startmenu))
         back_button.grid(row=4, column=0)
@@ -294,37 +296,15 @@ class MazeGUI:
         self.west = Button(movementframe, text="West", command=lambda: self.display_question("west"), pady=5)
         self.west.grid(row=2, column=1)
         movementframe.grid(row=1, column=1)
-        self.gamescreen.bind('<Left>', self.leftKey)
-        self.gamescreen.bind('<Right>', self.rightKey)
-        self.gamescreen.bind('<Up>', self.upKey)
-        self.gamescreen.bind('<Down>', self.downKey)
+        self.gamescreen.bind('<Left>', partial(self.arrowKey, "west"))
+        self.gamescreen.bind('<Right>', partial(self.arrowKey, "east"))
+        self.gamescreen.bind('<Up>', partial(self.arrowKey, "north"))
+        self.gamescreen.bind('<Down>', partial(self.arrowKey, "south"))
         self.gamescreen.focus_set()
 
-    def leftKey(self, event):
-        """Event binding for the left key, moves the player west if possible."""
-        if self.maze.check_west(self.maze.player_location[0], self.maze.player_location[1]):
-            self.display_question("west")
-        else:
-            pass
-
-    def rightKey(self, event):
-        """Event binding for the right key, moves the player east if possible."""
-        if self.maze.check_east(self.maze.player_location[0], self.maze.player_location[1]):
-            self.display_question("east")
-        else:
-            pass
-
-    def upKey(self, event):
-        """Event binding for the up key, moves the player north if possible."""
-        if self.maze.check_north(self.maze.player_location[0], self.maze.player_location[1]):
-            self.display_question("north")
-        else:
-            pass
-
-    def downKey(self, event):
-        """Event binding for the down key, moves the player south if possible."""
-        if self.maze.check_south(self.maze.player_location[0], self.maze.player_location[1]):
-            self.display_question("south")
+    def arrowKey(self, direction, event=None):
+        if self.maze.check_direction(self.maze.player_location[0], self.maze.player_location[1], direction):
+            self.display_question(direction)
         else:
             pass
 
@@ -332,33 +312,21 @@ class MazeGUI:
         """Sets the state of the movement buttons depending on if the adjacent rooms can be reached from the current
         room or not."""
         row, col = self.maze.player_location[0], self.maze.player_location[1]
-        if self.maze.check_north(row, col):
-            self.north["state"] = "normal"
-        else:
-            self.north["state"] = "disabled"
-        if self.maze.check_south(row, col):
-            self.south["state"] = "normal"
-        else:
-            self.south["state"] = "disabled"
-        if self.maze.check_east(row, col):
-            self.east["state"] = "normal"
-        else:
-            self.east["state"] = "disabled"
-        if self.maze.check_west(row, col):
-            self.west["state"] = "normal"
-        else:
-            self.west["state"] = "disabled"
+        directions = ["north", "south", "east", "west"]
+        buttons = [self.north, self.south, self.east, self.west]
+        for i in range(4):
+            if self.maze.check_direction(row, col, directions[i]):
+                buttons[i]['state'] = "normal"
+            else:
+                buttons[i]['state'] = "disabled"
 
-    def _move_player(self, event, direction, correct=True):
+    def _move_player(self, direction, event=None, correct=True):
         """Moves the player and adds the new room to the list of visited rooms if correct. If incorrect, then the
         corresponding door is locked. In both cases the game display is redrawn, the movement buttons are reset and
         any text that is in the text display is deleted. Afterwards, the win and lose conditions are checked, if either
         is true then the corresponding end game message is displayed.
         direction: string representing the direction the player is moving
         correct: boolean indicating if the player correctly answered the trivia question"""
-        def close(window):
-            window.destroy()
-
         if correct:
             self.maze.move_player(direction)
             winsound.PlaySound('sfx/walk.wav', winsound.SND_FILENAME)
@@ -368,44 +336,43 @@ class MazeGUI:
         self.drawer.draw()
         self._set_move_button_state()
         self.clear_text_display()
+        self.check_end_game()
+
+    def check_end_game(self):
+        def close(window):
+            window.destroy()
+
         if self.maze.player_wins():
-            text = Label(self.text_display, text=f'Congrats, you have won the game!', font="Times 26",
-                         justify="right", wraplength=600)
-            text.grid(row=0, column=0, columnspan=2)
+            text = Label(self.text_display, text=f'Congrats, you have won the game!', font="Times 26", padx=20, pady=10)
             winsound.PlaySound('sfx/game_win.wav', winsound.SND_FILENAME)
-        if not self.maze.is_completable():
+        elif not self.maze.is_completable():
             text = Label(self.text_display, text=f'Game Over\nYou can no longer reach the exit.', font="Times 26",
                          padx=20)
-            text.grid(row=0, column=0, columnspan=4)
-            replay = Button(self.text_display, text="Replay", font="Times 20",
-                            command=lambda: self.screen_switch(self.gamescreen, self.startmenu))
-            replay.grid(row=1, column=1)
-            exit = Button(self.text_display, text="Exit", font="Times 20", command=lambda: close(self.root))
-            exit.grid(row=1, column=2)
             winsound.PlaySound('sfx/game_lose.wav', winsound.SND_FILENAME)
+        else:
+            return
+        text.grid(row=0, column=0, columnspan=4)
+        replay_button = Button(self.text_display, text="Replay", font="Times 20",
+                               command=lambda: self.screen_switch(self.gamescreen, self.startmenu))
+        replay_button.grid(row=1, column=1)
+        exit_button = Button(self.text_display, text="Exit", font="Times 20", command=lambda: close(self.root))
+        exit_button.grid(row=1, column=2)
 
     def display_question(self, direction):
         """If a question is currently being displayed, pass. If the room that the player is moving too has already been
         visited, then move the player. Otherwise, pull a question from the database, and display it in the text display.
         direction: string representing the direction that the player is attempting to move in
         """
-        def highlight_selection(event, label):
-            label['bg'] = 'gray'
+        def highlight_selection(i, event=None):
+            answer_list[i]['bg'] = 'gray'
 
-        def unhighlight_selection(event, label):
-            label['bg'] = 'SystemButtonFace'
+        def unhighlight_selection(i, event=None):
+            answer_list[i]['bg'] = 'SystemButtonFace'
 
         if self.text_display.winfo_children():
             return
-        if direction == "north":
-            destination = [self.maze.player_location[0]-1, self.maze.player_location[1]]
-        elif direction == "south":
-            destination = [self.maze.player_location[0] + 1, self.maze.player_location[1]]
-        elif direction == "east":
-            destination = [self.maze.player_location[0], self.maze.player_location[1] + 1]
-        else:
-            destination = [self.maze.player_location[0], self.maze.player_location[1] - 1]
-        if self.maze.get_room(destination[0], destination[1]) in self.maze.visited_rooms:
+        destination = self.maze.find_destination(self.maze.player_location[0], self.maze.player_location[1], direction)
+        if destination in self.maze.visited_rooms:
             self.maze.move_player(direction)
             self.drawer.draw()
             self._set_move_button_state()
@@ -417,39 +384,16 @@ class MazeGUI:
             question_text = Label(self.text_display, text=f'{html.unescape(question[1])}', font="Times 16",
                                   justify="left", wraplength=600, anchor=W, width=600)
             question_text.grid(row=0, column=0)
-            correct_answer = Label(self.text_display, text=f'\t{html.unescape(question[2])}', font="Times 14", anchor=W)
-            correct_answer.bind('<Button-1>', lambda event: self._move_player(event, direction))
-            incorrect1 = Label(self.text_display, text=f'\t{html.unescape(question[3])}', font="Times 14", anchor=W)
-            incorrect1.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
-            "Places correct answer on top for ease in testing"
-            correct_answer.grid(row=1, column=0, sticky=E+W)
-            incorrect1.grid(row=2, column=0, sticky=E+W)
-            if question[0] == "multiple":
-                incorrect2 = Label(self.text_display, text=f'\t{html.unescape(question[4])}', font="Times 14", anchor=W)
-                incorrect2.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
-                incorrect3 = Label(self.text_display, text=f'\t{html.unescape(question[5])}', font="Times 14", anchor=W)
-                incorrect3.bind('<Button-1>', lambda event: self._move_player(event, direction, correct=False))
-                "Places incorrect answers on bottom for ease in testing"
-                incorrect2.grid(row=3, column=0, sticky=E+W)
-                incorrect3.grid(row=4, column=0, sticky=E+W)
-                incorrect2.bind('<Enter>', lambda event: highlight_selection(event, incorrect2))
-                incorrect2.bind('<Leave>', lambda event: unhighlight_selection(event, incorrect2))
-                incorrect3.bind('<Enter>', lambda event: highlight_selection(event, incorrect3))
-                incorrect3.bind('<Leave>', lambda event: unhighlight_selection(event, incorrect3))
-            "Randomizes answer location"
-            #     positions = [1, 2, 3, 4]
-            #     random.shuffle(positions)
-            #     incorrect2.grid(row=positions.pop(), column=0, sticky=W)
-            #     incorrect3.grid(row=positions.pop(), column=0, sticky=W)
-            # else:
-            #     positions = [1, 2]
-            #     random.shuffle(positions)
-            # correct_answer.grid(row=positions.pop(), column=0, sticky=W)
-            # incorrect1.grid(row=positions.pop(), column=0, sticky=W)
-            correct_answer.bind('<Enter>', lambda event: highlight_selection(event, correct_answer))
-            correct_answer.bind('<Leave>', lambda event: unhighlight_selection(event, correct_answer))
-            incorrect1.bind('<Enter>', lambda event: highlight_selection(event, incorrect1))
-            incorrect1.bind('<Leave>', lambda event: unhighlight_selection(event, incorrect1))
+            answer_list = []
+            for i in range(2, len(question)):
+                if not html.unescape(question[i]):
+                    return
+                answer = Label(self.text_display, text=f'\t{html.unescape(question[i])}', font="Times 14", anchor=W)
+                answer.grid(row=i + 1, column=0, sticky=E + W)
+                answer.bind('<Enter>', partial(highlight_selection, i - 2))
+                answer.bind('<Leave>', partial(unhighlight_selection, i - 2))
+                answer.bind('<Button-1>', partial(self._move_player, direction, correct=(i == 2)))
+                answer_list.append(answer)
 
     def clear_text_display(self):
         """Clears items in the text display."""
