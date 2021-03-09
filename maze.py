@@ -84,10 +84,10 @@ class Maze:
         """Returns room object located at the given row and column."""
         return self.grid[row][col]
 
-    def resize_dungeon(self, row, col):
+    def resize_maze(self, row, col):
         """
-        Alters dimension fields of the dungeon, does not create a new grid of rooms, needs to call generate to actually
-        resize the dungeon.
+        Alters dimension fields of the maze, does not create a new grid of rooms, needs to call generate to actually
+        resize the maze.
         """
         self.rows = row
         self.cols = col
