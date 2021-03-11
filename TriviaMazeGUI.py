@@ -3,8 +3,6 @@ from MazeDrawer import Drawer
 from question_database import SQLDatabase
 from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu, LabelFrame
 from tkinter.constants import E, W, N
-import sqlite3
-import html
 import pickle
 import time
 import winsound
@@ -35,11 +33,11 @@ class MazeGUI:
          default selection."""
         def set_difficulty(difficulty):
             if difficulty == "Hard":
-                maze.resize_dungeon(8, 8)
+                maze.resize_maze(8, 8)
             elif difficulty == "Medium":
-                maze.resize_dungeon(6, 6)
+                maze.resize_maze(6, 6)
             elif difficulty == "Easy":
-                maze.resize_dungeon(4, 4)
+                maze.resize_maze(4, 4)
             else:
                 pass
             maze.set_difficulty(difficulty.lower())
@@ -225,9 +223,8 @@ class MazeGUI:
         self.drawer = Drawer(self.maze, self.display)
         self.drawer.draw()
         self.display.grid(row=0, column=0, columnspan=4)
-        db = SQLDatabase(self.maze.category, self.maze.difficulty, self.maze.get_total_doors())
-        db.build_database()
-        self.db = sqlite3.connect('trivia_maze_questions.db')
+        self.db = SQLDatabase(self.maze.category, self.maze.difficulty, self.maze.get_total_doors())
+        self.db.build_database()
         self.start_time = int(time.time())
 
     def screen_switch(self, curr_frame, new_frame):
@@ -378,17 +375,15 @@ class MazeGUI:
             self._set_move_button_state()
             winsound.PlaySound('sfx/walk_short.wav', winsound.SND_FILENAME)
         else:
-            c = self.db.cursor()
-            c.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT 1;")
-            question = c.fetchone()
-            question_text = Label(self.text_display, text=f'{html.unescape(question[1])}', font="Times 16",
+            question = self.db.get_random_question()
+            question_text = Label(self.text_display, text=f'{question[1]}', font="Times 16",
                                   justify="left", wraplength=600, anchor=W, width=600)
             question_text.grid(row=0, column=0)
             answer_list = []
             for i in range(2, len(question)):
-                if not html.unescape(question[i]):
+                if not question[i]:
                     return
-                answer = Label(self.text_display, text=f'\t{html.unescape(question[i])}', font="Times 14", anchor=W)
+                answer = Label(self.text_display, text=f'\t{question[i]}', font="Times 14", anchor=W)
                 answer.grid(row=i + 1, column=0, sticky=E + W)
                 answer.bind('<Enter>', partial(highlight_selection, i - 2))
                 answer.bind('<Leave>', partial(unhighlight_selection, i - 2))
