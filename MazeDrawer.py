@@ -1,3 +1,6 @@
+from tkinter import PhotoImage
+
+
 class Drawer:
     """Contains methods to draw the game display for the trivia game."""
     def __init__(self, maze, canvas):
@@ -6,6 +9,8 @@ class Drawer:
         self.cols = self.maze.cols
         self.room_unit = 100
         self.canvas = canvas
+        self.player_image = PhotoImage(file='fx/player.gif')
+        self.exit_image = PhotoImage(file='fx/exit.gif')
 
     def draw(self):
         """Draws all of the rooms in the maze along with their contents. Draws walls in a separate loop from the
@@ -32,13 +37,14 @@ class Drawer:
     def draw_player(self):
         location = self.maze.player_location
         row, col = location[0], location[1]
-        self.canvas.create_text(self.room_unit * col + 45, self.room_unit * (row + 1) - 15, text="Player")
+        offset = self.room_unit // 2
+        self.canvas.create_image(self.room_unit * col + offset, self.room_unit * row + offset, image=self.player_image)
 
     def draw_exit(self):
         maze_exit = self.maze.exit
         row, col = maze_exit.position[0], maze_exit.position[1]
         offset = self.room_unit // 2
-        self.canvas.create_text(self.room_unit * col + offset, self.room_unit * row + offset, text="Ex", font="Times 14")
+        self.canvas.create_image(self.room_unit * col + offset, self.room_unit * row + offset, image=self.exit_image)
 
     def draw_door(self, room):
         """Draws the doors of the rooms in the maze on the canvas that is passed in. Checks if it is possible to
