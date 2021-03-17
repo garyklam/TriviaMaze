@@ -115,8 +115,6 @@ class SQLDatabase:
                 print(e)
         if conn:
             try:
-                c = conn.cursor()
-
                 c.execute("""CREATE TABLE IF NOT EXISTS questions (
                             type text,
                             question text,
@@ -140,6 +138,8 @@ class SQLDatabase:
         if difficulty == "easy" and database_question_count < self.target:
             self.add_questions(difficulty, database_question_count, c)
         conn.commit()
+        c.execute("VACUUM")
+        conn.close()
 
     def add_questions(self, difficulty, db_question_count, c):
         """Determines the highest possible amount of questions that can be obtained from the desired difficulty that
@@ -156,6 +156,9 @@ class SQLDatabase:
         return db_question_count
 
     def get_random_question(self):
+        """Connects to a database, depending on whether the user could connect to the api or not. Selects a random
+        entry from the questions table, decodes special characters and returns an array containing the contents of the
+        question entry."""
         if self.online:
             conn = sqlite3.connect(r"trivia_maze_questions.db")
         else:
@@ -167,9 +170,9 @@ class SQLDatabase:
             question.append(html.unescape(item))
         return question
 
-if __name__ == '__main__':
-    db = SQLDatabase()
-    # db.set_category("Entertainment: Music")
-    # db.set_difficulty("hard")
-    # db.build_database()
-    print(db.request_category_list())
+# if __name__ == '__main__':
+#     db = SQLDatabase()
+#     # db.set_category("Entertainment: Music")
+#     # db.set_difficulty("hard")
+#     # db.build_database()
+#     print(db.request_category_list())
