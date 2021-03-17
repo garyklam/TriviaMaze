@@ -66,9 +66,9 @@ class MazeGUI:
         hard_button.grid(row=0, column=0, sticky=W)
         medium_button = Button(menu_spacer3, text="Medium", font="Times 12", command=lambda: set_difficulty("Medium"))
         medium_button.grid(row=1, column=0, sticky=W)
-        easy_button = Button(menu_spacer3, text="Easy", font="Times 12", relief="sunken",
-                             command=lambda: set_difficulty("Easy"))
+        easy_button = Button(menu_spacer3, text="Easy", font="Times 12", command=lambda: set_difficulty("Easy"))
         easy_button.grid(row=2, column=0, sticky=W)
+        set_difficulty("Easy")
         continue_game_button = Button(menu_spacer2, text="Continue Game", font="Times 20",
                                       command=self.display_load_menu)
         continue_game_button.grid(row=5, column=1, columnspan=2, sticky=W)
@@ -129,7 +129,6 @@ class MazeGUI:
         print(f'loading {savefile}')
         try:
             loadhandle = open(savefile+'.pkl', 'rb')
-            print("foundfile")
         except FileNotFoundError:
             if load_menu:
                 return
@@ -142,17 +141,17 @@ class MazeGUI:
                                          command=self.clear_text_display)
                 continue_button.grid(row=1, column=0)
                 return
+        winsound.PlaySound('sfx/load_tone.wav', winsound.SND_FILENAME)
         mazedata = pickle.load(loadhandle)
         loadhandle.close()
         self.maze = mazedata
-        print("loaded")
         if not load_menu:
             self.display.destroy()
         else:
             load_menu.destroy()
             self.screen_switch(self.startmenu, self.gamescreen)
         self.start_game()
-        winsound.PlaySound('sfx/load_tone.wav', winsound.SND_FILENAME)
+
 
     def save_game(self, savefile):
         """
@@ -214,8 +213,10 @@ class MazeGUI:
         new_game: boolean indicating if the game is being loaded from a save file or if it is a new game
         """
         if new_game:
-            self.maze.construct()
+            self.maze.reset_maze()
             self.screen_switch(self.startmenu, self.gamescreen)
+        for item in self.gamescreen.winfo_children():
+            item.destroy()
         self._menu_init()
         self._movement_interface_init()
         size = self.maze.get_size()
@@ -318,39 +319,40 @@ class MazeGUI:
                 buttons[i]['state'] = "disabled"
 
     def _move_player(self, direction, event=None, correct=True):
-        """Moves the player and adds the new room to the list of visited rooms if correct. If incorrect, then the
-        corresponding door is locked. In both cases the game display is redrawn, the movement buttons are reset and
-        any text that is in the text display is deleted. Afterwards, the win and lose conditions are checked, if either
-        is true then the corresponding end game message is displayed.
+        """Moves the player if correct. If incorrect, then the corresponding door is locked. In both cases the game
+        display is redrawn, the movement buttons are reset and any text that is in the text display is deleted.
         direction: string representing the direction the player is moving
         correct: boolean indicating if the player correctly answered the trivia question"""
         if correct:
             self.maze.move_player(direction)
-            winsound.PlaySound('sfx/walk.wav', winsound.SND_FILENAME)
+            winsound.PlaySound('sfx/walk.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
         else:
             self.maze.lock_door(direction)
-            winsound.PlaySound('sfx/door_lock.wav', winsound.SND_FILENAME)
+            winsound.PlaySound('sfx/door_lock.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
         self.drawer.draw()
         self._set_move_button_state()
         self.clear_text_display()
         self.check_end_game()
 
     def check_end_game(self):
+        """Checks if either player wins or maze is no longer completable. If either condition is met, the corresponding
+        end game screen is displayed and options for exiting and replaying are offered."""
         def close(window):
             window.destroy()
 
         if self.maze.player_wins():
             text = Label(self.text_display, text=f'Congrats, you have won the game!', font="Times 26", padx=20, pady=10)
-            winsound.PlaySound('sfx/game_win.wav', winsound.SND_FILENAME)
+            winsound.PlaySound('sfx/game_win.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
         elif not self.maze.is_completable():
             text = Label(self.text_display, text=f'Game Over\nYou can no longer reach the exit.', font="Times 26",
                          padx=20)
-            winsound.PlaySound('sfx/game_lose.wav', winsound.SND_FILENAME)
+            winsound.PlaySound('sfx/game_lose.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
         else:
             return
         text.grid(row=0, column=0, columnspan=4)
         replay_button = Button(self.text_display, text="Replay", font="Times 20",
-                               command=lambda: self.screen_switch(self.gamescreen, self.startmenu))
+                               command=lambda: [self.start_menu_init(),
+                                                self.screen_switch(self.gamescreen, self.startmenu)])
         replay_button.grid(row=1, column=1)
         exit_button = Button(self.text_display, text="Exit", font="Times 20", command=lambda: close(self.root))
         exit_button.grid(row=1, column=2)
@@ -373,7 +375,7 @@ class MazeGUI:
             self.maze.move_player(direction)
             self.drawer.draw()
             self._set_move_button_state()
-            winsound.PlaySound('sfx/walk_short.wav', winsound.SND_FILENAME)
+            winsound.PlaySound('sfx/walk_short.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
         else:
             question = self.db.get_random_question()
             question_text = Label(self.text_display, text=f'{question[1]}', font="Times 16",

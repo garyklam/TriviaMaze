@@ -108,6 +108,15 @@ class Maze:
         room = self.get_room(row, col)
         self.visited_rooms.append(room)
 
+    def reset_maze(self):
+        self._player_location = [1, 1]
+        self.grid = None
+        self._category = None
+        self.visited_rooms = []
+        self.stats = {}
+        self._time_elapsed = 0
+        self.construct()
+
     def set_borders(self):
         """Sets the door values of the rooms on the edge of the dungeon to be walls."""
         for room in self.grid[0]:
