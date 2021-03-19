@@ -16,11 +16,8 @@ class Room:
     def doors(self):
         return self._doors
 
-    def set_as_border(self, direction):
-        self._doors[direction.lower()] = False
-
     def lock_door(self, direction):
-        self._doors[direction] = False
+        self._doors[direction.lower()] = False
         
     def game_over(self):
         if self.answers["north"] == 'wrong':
@@ -101,36 +98,31 @@ class Maze:
         self._time_elapsed += current - start
 
     def construct(self):
+        self.visited_rooms = []
+        self._player_location = [1, 1]
         self.grid = [[Room(r, c) for c in range(self.cols)] for r in range(self.rows)]
         self.set_borders()
         self.exit = self.get_room(self.rows - 1, self.cols - 1)
         row, col = self.player_location[0], self.player_location[1]
         room = self.get_room(row, col)
         self.visited_rooms.append(room)
-
-    def reset_maze(self):
-        self._player_location = [1, 1]
-        self.grid = None
-        self._category = None
-        self.visited_rooms = []
-        self.stats = {}
         self._time_elapsed = 0
-        self.construct()
 
     def set_borders(self):
         """Sets the door values of the rooms on the edge of the dungeon to be walls."""
         for room in self.grid[0]:
-            room.set_as_border("north")
+            room.lock_door("north")
         for room in self.grid[self.rows - 1]:
-            room.set_as_border("south")
+            room.lock_door("south")
         for row in self.grid:
-            row[0].set_as_border("west")
-            row[self.cols - 1].set_as_border("east")
+            row[0].lock_door("west")
+            row[self.cols - 1].lock_door("east")
 
     def move_player(self, direction):
         destination = self.find_destination(self.player_location[0], self.player_location[1], direction)
         self._player_location = destination.position
-        self.visited_rooms.append(destination)
+        if destination not in self.visited_rooms:
+            self.visited_rooms.append(destination)
 
     def player_wins(self):
         if self._player_location[0] == self.exit.position[0] \
