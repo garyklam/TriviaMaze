@@ -5,7 +5,7 @@ from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu, Labe
 from tkinter.constants import E, W, N
 import pickle
 import time
-import winsound
+import pygame
 from functools import partial
 
 
@@ -25,6 +25,8 @@ class MazeGUI:
         self.startmenu.grid(row=0, column=0)
         self.gamescreen.grid_forget()
         self.root.mainloop()
+        pygame.init()
+        pygame.mixer.init()
 
     """Start menu"""
     def start_menu_init(self):
@@ -141,7 +143,8 @@ class MazeGUI:
                                          command=self.clear_text_display)
                 continue_button.grid(row=1, column=0)
                 return
-        winsound.PlaySound('sfx/load_tone.wav', winsound.SND_FILENAME)
+        load_tone = pygame.mixer.Sound('sfx/load_tone.wav')
+        pygame.mixer.Sound.play(load_tone)
         mazedata = pickle.load(loadhandle)
         loadhandle.close()
         self.maze = mazedata
@@ -169,7 +172,8 @@ class MazeGUI:
         confirmation.grid(row=0, column=0)
         back_button = Button(self.text_display, text="Continue", font='Times 18', command=self.clear_text_display)
         back_button.grid(row=1, column=0)
-        winsound.PlaySound('sfx/save_tone.wav', winsound.SND_FILENAME)
+        save_tone = pygame.mixer.Sound('sfx/save_tone.wav')
+        pygame.mixer.Sound.play(save_tone)
 
     def display_load_menu(self):
         """
@@ -323,12 +327,15 @@ class MazeGUI:
         display is redrawn, the movement buttons are reset and any text that is in the text display is deleted.
         direction: string representing the direction the player is moving
         correct: boolean indicating if the player correctly answered the trivia question"""
+        pygame.mixer.init()
         if correct:
             self.maze.move_player(direction)
-            winsound.PlaySound('sfx/walk.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            walk_sound = pygame.mixer.Sound('sfx/walk.wav')
+            pygame.mixer.Sound.play(walk_sound)
         else:
             self.maze.lock_door(direction)
-            winsound.PlaySound('sfx/door_lock.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            door_lock_sound = pygame.mixer.Sound('sfx/door_lock.wav')
+            pygame.mixer.Sound.play(door_lock_sound)
         self.drawer.draw()
         self._set_move_button_state()
         self.clear_text_display()
@@ -342,11 +349,13 @@ class MazeGUI:
 
         if self.maze.player_wins():
             text = Label(self.text_display, text=f'Congrats, you have won the game!', font="Times 26", padx=20, pady=10)
-            winsound.PlaySound('sfx/game_win.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            game_win_sound = pygame.mixer.Sound('sfx/game_win.wav')
+            pygame.mixer.Sound.play(game_win_sound)
         elif not self.maze.is_completable():
             text = Label(self.text_display, text=f'Game Over\nYou can no longer reach the exit.', font="Times 26",
                          padx=20)
-            winsound.PlaySound('sfx/game_lose.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            game_lose_sound = pygame.mixer.Sound('sfx/game_lose.wav')
+            pygame.mixer.Sound.play(game_lose_sound)
         else:
             return
         text.grid(row=0, column=0, columnspan=4)
@@ -375,7 +384,8 @@ class MazeGUI:
             self.maze.move_player(direction)
             self.drawer.draw()
             self._set_move_button_state()
-            winsound.PlaySound('sfx/walk_short.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            walk_short_sound = pygame.mixer.Sound('sfx/walk_short.wav')
+            pygame.mixer.Sound.play(walk_short_sound)
         else:
             question = self.db.get_random_question()
             question_text = Label(self.text_display, text=f'{question[1]}', font="Times 16",
