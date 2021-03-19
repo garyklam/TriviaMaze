@@ -1,11 +1,12 @@
 from maze import Maze
 from MazeDrawer import Drawer
 from question_database import SQLDatabase
-from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu, LabelFrame
+from tkinter import Tk, Frame, Button, Label, Canvas, Text, Toplevel, Menu, LabelFrame, ttk, StringVar, OptionMenu
 from tkinter.constants import E, W, N
 import pickle
 import time
-import winsound
+import pygame
+import random
 from functools import partial
 
 
@@ -24,6 +25,8 @@ class MazeGUI:
         self.start_menu_init()
         self.startmenu.grid(row=0, column=0)
         self.gamescreen.grid_forget()
+        pygame.init()
+        pygame.mixer.init()
         self.root.mainloop()
 
     """Start menu"""
@@ -31,25 +34,6 @@ class MazeGUI:
         """Builds the start menu for the game. Has a button to start a new game, continue game, display instructions and
          exit the program. Under the new game button there are options for different game difficulties, with easy as the
          default selection."""
-        def set_difficulty(difficulty):
-            if difficulty == "Hard":
-                maze.resize_maze(8, 8)
-            elif difficulty == "Medium":
-                maze.resize_maze(6, 6)
-            elif difficulty == "Easy":
-                maze.resize_maze(4, 4)
-            else:
-                pass
-            maze.set_difficulty(difficulty.lower())
-            set_buttons(difficulty)
-
-        def set_buttons(difficulty):
-            buttons = {"Easy": easy_button, "Medium": medium_button, "Hard": hard_button}
-            for button in buttons.values():
-                button['relief'] = 'raised'
-            buttons[difficulty]['relief'] = 'sunken'
-
-        maze = self.maze
         self.startmenu.grid(row=0, column=0)
         menu_spacer = Frame(self.startmenu, height=80, width=600)
         menu_spacer.grid(row=0, column=0, columnspan=3)
@@ -60,23 +44,16 @@ class MazeGUI:
         title = Label(self.startmenu, text="504 TriviaMaze", font="Times 40", pady=50)
         title.grid(row=1, column=0, columnspan=4)
         new_game_button = Button(menu_spacer2, text="New Game", font="Times 20",
-                                 command=lambda: self.start_game(new_game=True))
+                                 command=lambda: self.display_new_game_menu())
         new_game_button.grid(row=3, column=1, sticky=W)
-        hard_button = Button(menu_spacer3, text="Hard", font="Times 12", command=lambda: set_difficulty("Hard"))
-        hard_button.grid(row=0, column=0, sticky=W)
-        medium_button = Button(menu_spacer3, text="Medium", font="Times 12", command=lambda: set_difficulty("Medium"))
-        medium_button.grid(row=1, column=0, sticky=W)
-        easy_button = Button(menu_spacer3, text="Easy", font="Times 12", command=lambda: set_difficulty("Easy"))
-        easy_button.grid(row=2, column=0, sticky=W)
-        set_difficulty("Easy")
         continue_game_button = Button(menu_spacer2, text="Continue Game", font="Times 20",
                                       command=self.display_load_menu)
-        continue_game_button.grid(row=5, column=1, columnspan=2, sticky=W)
+        continue_game_button.grid(row=6, column=1, columnspan=2, sticky=W)
         instructions_button = Button(menu_spacer2, text="Instructions", font="Times 20",
                                      command=self.display_instructions)
-        instructions_button.grid(row=6, column=1, columnspan=2, sticky=W)
+        instructions_button.grid(row=7, column=1, columnspan=2, sticky=W)
         exit_button = Button(menu_spacer2, text="Exit", font="Times 20", command=self.root.destroy)
-        exit_button.grid(row=7, column=1, columnspan=2, sticky=W)
+        exit_button.grid(row=8, column=1, columnspan=2, sticky=W)
 
     def display_instructions(self):
         """Displays basic instructions for the game. Hides the start menu and replaces it with a screen containing
@@ -93,6 +70,88 @@ class MazeGUI:
         back_button = Button(instruct_frame, text="Back", font="Times 20",
                              command=lambda: self.screen_switch(instruct_frame, self.startmenu))
         back_button.grid(row=1, column=0)
+
+    def display_new_game_menu(self):
+        """Creates and displays the new game menu, allowing the player to choose question difficulty, maze size, and
+        trivia category. The default options are easy, 4x4 and no specific category."""
+        def set_difficulty(difficulty):
+            buttons = {"Easy": easy_button, "Medium": medium_button, "Hard": hard_button}
+            for button in buttons.values():
+                button['relief'] = 'raised'
+            buttons[difficulty]['relief'] = 'sunken'
+            maze.set_difficulty(difficulty.lower())
+
+        def set_category(chosen_category, possible_categories):
+            """Ensures a valid category is chosen"""
+            if chosen_category in possible_categories:
+                maze.set_category(chosen_category)
+            else:
+                invalid_selection = Label(new_game_menu, text="The selected category is invalid, please choose a "
+                                                              "different category.", font='Times 16', pady=5)
+                invalid_selection.grid(row=5, column=0, columnspan=4)
+
+        new_game_menu = Toplevel(self.root)
+        maze = self.maze
+        instruction_text = "Please select a category from the provided list.\nChoosing a specific category will reduce " \
+                           "the number of\navailable questions and increase the change of repeat questions.\n Selecting" \
+                           " no category will pull from all possible categories."
+        selection_instruction = Label(new_game_menu, text=instruction_text, font="Times 14", pady=10)
+        selection_instruction.grid(row=0, column=0, columnspan=3)
+
+        difficulty_frame = Frame(new_game_menu)
+        difficulty_frame.grid(row=1, column=0, columnspan=3)
+        difficulty_label = Label(difficulty_frame, text="Question difficulty: ", font="Times 16", pady=15)
+        difficulty_label.grid(row=1, column=0)
+        hard_button = Button(difficulty_frame, text="Hard", padx=5, font="Times 12",
+                             command=lambda: set_difficulty("Hard"))
+        hard_button.grid(row=1, column=4)
+        medium_button = Button(difficulty_frame, text="Medium", padx=5, font="Times 12",
+                               command=lambda: set_difficulty("Medium"))
+        medium_button.grid(row=1, column=3)
+        easy_button = Button(difficulty_frame, text="Easy", padx=5, font="Times 12",
+                             command=lambda: set_difficulty("Easy"))
+        easy_button.grid(row=1, column=2)
+        set_difficulty("Easy")
+
+        dimension_frame = Frame(new_game_menu)
+        dimension_frame.grid(row=2, column=0, columnspan=3)
+        dimension_choices = range(3, 11)
+        row_label = Label(dimension_frame, text="Row: ", font="Times 16", pady=15)
+        row_label.grid(row=2, column=0, sticky=W)
+        row_choice = StringVar()
+        row_choice.set(4)
+        row_select = OptionMenu(dimension_frame, row_choice, *dimension_choices)
+        row_select.grid(row=2, column=1)
+        col_label = Label(dimension_frame, text="Col: ", font="Times 16")
+        col_label.grid(row=2, column=2, sticky=W)
+        col_choice = StringVar()
+        col_choice.set(4)
+        col_select = OptionMenu(dimension_frame, col_choice, *dimension_choices)
+        col_select.grid(row=2, column=3)
+
+        db = SQLDatabase()
+        category_list = db.request_category_list()
+        category_frame = Frame(new_game_menu)
+        category_frame.grid(row=3, column=0, columnspan=3)
+        category_label = Label(category_frame, text="Category: ", font="Times 16", pady=15).grid(row=3, column=0)
+        c = StringVar()
+        category_box = ttk.Combobox(category_frame, justify='left', textvariable=c, font='Times 16')
+        categories = []
+        for key in category_list.keys():
+            categories.append(key)
+        category_box['values'] = categories
+        category_box.grid(row=3, column=1)
+
+        button_frame = Frame(new_game_menu)
+        button_frame.grid(row=4, column=1)
+        submit = Button(button_frame, text='Start', font='Times 20',
+                        command=lambda: [set_category(c.get(), categories),
+                                         self.maze.resize_maze(int(row_choice.get()), int(col_choice.get())),
+                                         self.start_game(new_game=True),
+                                         new_game_menu.destroy()])
+        submit.grid(row=4, column=0)
+        back_button = Button(button_frame, text='Back', font='Times 20', command=lambda: new_game_menu.destroy())
+        back_button.grid(row=4, column=1)
 
     def prompt(self, savefile, type):
         """Creates a text prompt in the text display of the game screen asking the player to confirm their save/load.
@@ -141,7 +200,8 @@ class MazeGUI:
                                          command=self.clear_text_display)
                 continue_button.grid(row=1, column=0)
                 return
-        winsound.PlaySound('sfx/load_tone.wav', winsound.SND_FILENAME)
+        load_tone = pygame.mixer.Sound('sfx/load_tone.wav')
+        pygame.mixer.Sound.play(load_tone)
         mazedata = pickle.load(loadhandle)
         loadhandle.close()
         self.maze = mazedata
@@ -151,7 +211,7 @@ class MazeGUI:
             load_menu.destroy()
             self.screen_switch(self.startmenu, self.gamescreen)
         self.start_game()
-
+        self.check_end_game()
 
     def save_game(self, savefile):
         """
@@ -169,7 +229,8 @@ class MazeGUI:
         confirmation.grid(row=0, column=0)
         back_button = Button(self.text_display, text="Continue", font='Times 18', command=self.clear_text_display)
         back_button.grid(row=1, column=0)
-        winsound.PlaySound('sfx/save_tone.wav', winsound.SND_FILENAME)
+        save_tone = pygame.mixer.Sound('sfx/save_tone.wav')
+        pygame.mixer.Sound.play(save_tone)
 
     def display_load_menu(self):
         """
@@ -213,7 +274,7 @@ class MazeGUI:
         new_game: boolean indicating if the game is being loaded from a save file or if it is a new game
         """
         if new_game:
-            self.maze.reset_maze()
+            self.maze.construct()
             self.screen_switch(self.startmenu, self.gamescreen)
         for item in self.gamescreen.winfo_children():
             item.destroy()
@@ -325,10 +386,12 @@ class MazeGUI:
         correct: boolean indicating if the player correctly answered the trivia question"""
         if correct:
             self.maze.move_player(direction)
-            winsound.PlaySound('sfx/walk.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            walk_sound = pygame.mixer.Sound('sfx/walk.wav')
+            pygame.mixer.Sound.play(walk_sound)
         else:
             self.maze.lock_door(direction)
-            winsound.PlaySound('sfx/door_lock.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            door_lock_sound = pygame.mixer.Sound('sfx/door_lock.wav')
+            pygame.mixer.Sound.play(door_lock_sound)
         self.drawer.draw()
         self._set_move_button_state()
         self.clear_text_display()
@@ -342,11 +405,13 @@ class MazeGUI:
 
         if self.maze.player_wins():
             text = Label(self.text_display, text=f'Congrats, you have won the game!', font="Times 26", padx=20, pady=10)
-            winsound.PlaySound('sfx/game_win.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            game_win_sound = pygame.mixer.Sound('sfx/game_win.wav')
+            pygame.mixer.Sound.play(game_win_sound)
         elif not self.maze.is_completable():
             text = Label(self.text_display, text=f'Game Over\nYou can no longer reach the exit.', font="Times 26",
                          padx=20)
-            winsound.PlaySound('sfx/game_lose.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            game_lose_sound = pygame.mixer.Sound('sfx/game_lose.wav')
+            pygame.mixer.Sound.play(game_lose_sound)
         else:
             return
         text.grid(row=0, column=0, columnspan=4)
@@ -375,18 +440,22 @@ class MazeGUI:
             self.maze.move_player(direction)
             self.drawer.draw()
             self._set_move_button_state()
-            winsound.PlaySound('sfx/walk_short.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            walk_short_sound = pygame.mixer.Sound('sfx/walk_short.wav')
+            pygame.mixer.Sound.play(walk_short_sound)
         else:
             question = self.db.get_random_question()
             question_text = Label(self.text_display, text=f'{question[1]}', font="Times 16",
                                   justify="left", wraplength=600, anchor=W, width=600)
             question_text.grid(row=0, column=0)
             answer_list = []
-            for i in range(2, len(question)):
+            answer_count = len(question)
+            positions = [*range(1, answer_count + 1)]
+            random.shuffle(positions)
+            for i in range(2, answer_count):
                 if not question[i]:
                     return
                 answer = Label(self.text_display, text=f'\t{question[i]}', font="Times 14", anchor=W)
-                answer.grid(row=i + 1, column=0, sticky=E + W)
+                answer.grid(row=positions.pop() + 1, column=0, sticky=E + W)
                 answer.bind('<Enter>', partial(highlight_selection, i - 2))
                 answer.bind('<Leave>', partial(unhighlight_selection, i - 2))
                 answer.bind('<Button-1>', partial(self._move_player, direction, correct=(i == 2)))
